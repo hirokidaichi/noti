@@ -4,91 +4,121 @@ import { Config } from "../lib/config/config.ts";
 import Fuse from "https://esm.sh/fuse.js@6.6.2";
 import { readLines } from "https://deno.land/std@0.155.0/io/mod.ts";
 
+// デバウンス処理用の関数
+async function debounce<T>(
+  fn: (...args: any[]) => Promise<T>,
+  delay: number
+): Promise<(...args: any[]) => Promise<T>> {
+  let timeoutId: number | undefined;
+  let lastPromise: Promise<T> | undefined;
+
+  return async (...args: any[]): Promise<T> => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+
+    return new Promise((resolve) => {
+      timeoutId = setTimeout(async () => {
+        lastPromise = fn(...args);
+        resolve(await lastPromise);
+      }, delay);
+    });
+  };
+}
+
+// 検索結果の整形用ヘルパー関数
+function formatNotionResults(results: any[]) {
+  return results.map((item: any) => {
+    let title = "Untitled";
+    
+    if (item.object === "page") {
+      // データベース内のページの場合
+      if (item.parent.type === "database_id") {
+        // プロパティを探索してタイトルを見つける
+        for (const [key, value] of Object.entries(item.properties)) {
+          if (value.type === "title") {
+            title = value.title[0]?.plain_text || "Untitled";
+            break;
+          }
+        }
+      } else {
+        // 通常のページの場合
+        title = item.properties?.title?.title?.[0]?.plain_text || "Untitled";
+      }
+    } else if (item.object === "database") {
+      title = item.title[0]?.plain_text || "Untitled Database";
+    }
+
+    // 改行を\nにエスケープ
+    title = title.replace(/\r?\n/g, "\\n");
+
+    // タイトルを50文字で切り詰める
+    if (title.length > 50) {
+      title = title.slice(0, 50) + "...";
+    }
+    
+    return {
+      id: item.id,
+      title,
+      type: item.object,
+      url: item.url,
+    };
+  });
+}
+
 export const searchCommand = new Command()
   .name("search")
   .description("Search pages and databases in Notion")
   .arguments("[query:string]")
   .option("-o, --output <file:string>", "Output file path")
   .option("-d, --debug", "デバッグモード")
-  .action(async (options, query = "") => {
+  .option("-p, --parent <id:string>", "親ページまたはデータベースのID")
+  .action(async ({ output, debug, parent }, query) => {
     const config = await Config.load();
     const client = new NotionClient(config);
     
     try {
-      const results = await client.search({
-        query,
+      const searchParams: any = {
+        query: query || "",
         page_size: 100,
-      });
+      };
+
+      // 親ページが指定されている場合は検索条件に追加
+      if (parent) {
+        searchParams.filter = {
+          property: "parent",
+          value: parent,
+        };
+      }
+
+      const results = await client.search(searchParams);
 
       if (results.results.length === 0) {
         console.error("検索結果が見つかりませんでした。");
         return;
       }
 
-      if (options.debug) {
+      if (debug) {
         console.error("=== Debug: First Result ===");
         console.error(JSON.stringify(results.results[0], null, 2));
         console.error("========================");
       }
 
       // 検索結果をフォーマット
-      const items = results.results.map((item: any) => {
-        let title = "Untitled";
-        
-        if (item.object === "page") {
-          // ページのタイトルを取得する方法をデバッグ
-          if (options.debug) {
-            console.error("=== Debug: Page Properties ===");
-            console.error(JSON.stringify(item.properties, null, 2));
-            console.error("========================");
-          }
-
-          // データベース内のページの場合
-          if (item.parent.type === "database_id") {
-            // プロパティを探索してタイトルを見つける
-            for (const [key, value] of Object.entries(item.properties)) {
-              if (value.type === "title") {
-                title = value.title[0]?.plain_text || "Untitled";
-                break;
-              }
-            }
-          } else {
-            // 通常のページの場合
-            title = item.properties?.title?.title?.[0]?.plain_text || "Untitled";
-          }
-        } else if (item.object === "database") {
-          title = item.title[0]?.plain_text || "Untitled Database";
-        }
-
-        // 改行を\nにエスケープ
-        title = title.replace(/\r?\n/g, "\\n");
-
-        // タイトルを50文字で切り詰める
-        if (title.length > 50) {
-          title = title.slice(0, 50) + "...";
-        }
-        
-        return {
-          id: item.id,
-          title,
-          type: item.object,
-          url: item.url,
-        };
-      });
+      const items = formatNotionResults(results.results);
 
       // インタラクティブモードかファイル出力モードかを判断
-      if (options.output) {
+      if (output) {
         await Deno.writeTextFile(
-          options.output,
+          output,
           JSON.stringify(items, null, 2)
         );
-        console.error(`結果を ${options.output} に保存しました。`);
+        console.error(`結果を ${output} に保存しました。`);
       } else {
         // インタラクティブモードの実装
-        const selected = await fuzzyFinder(items);
+        const selected = await fuzzyFinder(items, query || "", client, parent);
         if (selected) {
-          await openInBrowser(selected.url);
-          console.error(`${selected.title} を開きました。`);
+          console.log(selected.id);
         }
       }
     } catch (error) {
@@ -110,17 +140,44 @@ const ANSI = {
   showCursor: "\x1b[?25h",
 };
 
-// Fuzzy Finder の実装
-async function fuzzyFinder(items: any[]) {
-  const fuse = new Fuse(items, {
-    keys: ["title"],
-    threshold: 0.3,
-  });
+// ターミナルのサイズを取得する関数
+function getTerminalSize() {
+  // デフォルト値
+  const defaultSize = { columns: 80, rows: 24 };
+  
+  try {
+    const { columns, rows } = Deno.consoleSize();
+    return { columns, rows };
+  } catch {
+    return defaultSize;
+  }
+}
 
+// Fuzzy Finder の実装
+async function fuzzyFinder(items: any[], initialQuery: string = "", client: NotionClient, parentId?: string) {
   let selectedItem = null;
-  let currentResults = [];  // 初期状態では空の配列
-  let searchText = "";
+  let currentResults = initialQuery ? items : [];  // 初期結果を表示
+  let searchText = initialQuery;
   let selectedIndex = 0;
+
+  // デバウンスされた検索関数を作成
+  const debouncedSearch = await debounce(async (query: string) => {
+    const searchParams: any = {
+      query,
+      page_size: 50,
+    };
+
+    // 親ページが指定されている場合は検索条件に追加
+    if (parentId) {
+      searchParams.filter = {
+        property: "parent",
+        value: parentId,
+      };
+    }
+
+    const results = await client.search(searchParams);
+    return formatNotionResults(results.results);
+  }, 500);
 
   // 入力モードに入る前に画面をクリア
   process.stdout.write(ANSI.clear);
@@ -130,10 +187,11 @@ async function fuzzyFinder(items: any[]) {
   Deno.stdin.setRaw(true);
 
   try {
-    const buf = new Uint8Array(8);
+    // バッファサイズを増やす（日本語入力に対応）
+    const buf = new Uint8Array(1024);
     
-    // 初期表示
-    displayResults(currentResults, searchText, selectedIndex, true);
+    // 初期表示（検索キーワードが指定されている場合は結果を表示）
+    displayResults(currentResults, searchText, selectedIndex, !initialQuery);
 
     while (true) {
       const n = await Deno.stdin.read(buf);
@@ -141,6 +199,7 @@ async function fuzzyFinder(items: any[]) {
 
       const input = new TextDecoder().decode(buf.subarray(0, n));
       let needsUpdate = false;
+      let needsSearch = false;
       
       // Ctrl+C で終了
       if (input === "\x03") {
@@ -161,11 +220,11 @@ async function fuzzyFinder(items: any[]) {
       // Backspace
       if (input === "\x7f") {
         if (searchText.length > 0) {
-          searchText = searchText.slice(0, -1);
-          currentResults = searchText ? 
-            fuse.search(searchText).map(r => r.item) : 
-            [];  // 検索文字列が空の場合は結果も空に
-          selectedIndex = Math.min(selectedIndex, currentResults.length - 1);
+          // 最後の文字を削除（サロゲートペアを考慮）
+          const lastChar = searchText.slice(-1);
+          const charLength = lastChar.length;
+          searchText = searchText.slice(0, -charLength);
+          needsSearch = true;
           needsUpdate = true;
         }
       }
@@ -184,14 +243,25 @@ async function fuzzyFinder(items: any[]) {
         }
       }
       // 通常の文字入力
-      else if (input.length === 1 && input.charCodeAt(0) >= 32) {
-        searchText += input;
-        currentResults = fuse.search(searchText).map(r => r.item);
-        selectedIndex = 0;
-        needsUpdate = true;
+      else if (input.length >= 1) {
+        // エスケープシーケンスでない場合のみ処理
+        if (!input.startsWith("\x1b")) {
+          searchText += input;
+          needsSearch = true;
+          needsUpdate = true;
+        }
       }
 
-      // 画面を更新
+      // 検索の実行（デバウンスされた関数を使用）
+      if (needsSearch) {
+        debouncedSearch(searchText).then((results) => {
+          currentResults = results;
+          selectedIndex = 0;
+          displayResults(currentResults, searchText, selectedIndex, false);
+        });
+      }
+
+      // 画面を更新（検索結果の更新とは独立して実行）
       if (needsUpdate) {
         displayResults(currentResults, searchText, selectedIndex, false);
       }
@@ -214,8 +284,18 @@ function displayResults(items: any[], query: string, selectedIndex: number, isIn
   // 画面をクリア
   process.stdout.write(ANSI.clear);
 
+  // ターミナルのサイズを取得
+  const { rows } = getTerminalSize();
+  
+  // ヘッダーとフッターで使用する行数
+  const headerLines = 5; // Query, 区切り線2つ, ヘルプ行
+  const footerLines = 2; // 区切り線1つ, 予備1行
+  
+  // 結果表示に使える最大行数
+  const maxResultLines = rows - headerLines - footerLines;
+
   // 検索バーを最上部に表示し、カーソル位置を保存
-  process.stdout.write("検索 > " + query);
+  process.stdout.write("Query > " + query);
   process.stdout.write(ANSI.saveCursor);
   process.stdout.write("\n------------------------\n");
 
@@ -228,11 +308,27 @@ function displayResults(items: any[], query: string, selectedIndex: number, isIn
   } else if (items.length === 0) {
     process.stdout.write("該当する結果がありません\n");
   } else {
-    items.forEach((item, i) => {
+    // 表示開始位置を計算（選択項目が必ず表示されるようにする）
+    let startIndex = Math.max(0, Math.min(
+      selectedIndex - Math.floor(maxResultLines / 2),
+      items.length - maxResultLines
+    ));
+    startIndex = Math.max(0, startIndex);
+
+    // 表示件数を制限
+    const displayItems = items.slice(startIndex, startIndex + maxResultLines);
+    
+    // 全体の件数と現在の表示範囲を表示
+    if (items.length > maxResultLines) {
+      process.stdout.write(`表示: ${startIndex + 1}-${Math.min(startIndex + maxResultLines, items.length)} / 全${items.length}件\n`);
+    }
+
+    displayItems.forEach((item, i) => {
+      const actualIndex = startIndex + i;
       const icon = item.type === "page" ? "📄" : "🗃️";
       const line = ` ${icon} ${item.title}`;
       
-      if (i === selectedIndex) {
+      if (actualIndex === selectedIndex) {
         // 選択中の項目は反転表示
         process.stdout.write(ANSI.reverse + line + ANSI.reset + "\n");
       } else {
@@ -246,19 +342,4 @@ function displayResults(items: any[], query: string, selectedIndex: number, isIn
   // カーソル位置を復元し、カーソルを表示
   process.stdout.write(ANSI.restoreCursor);
   process.stdout.write(ANSI.showCursor);
-}
-
-// ブラウザでURLを開く
-async function openInBrowser(url: string) {
-  const cmd = {
-    darwin: ["open"],
-    linux: ["xdg-open"],
-    windows: ["cmd", "/c", "start"],
-  }[Deno.build.os] || ["open"];
-
-  const process = new Deno.Command(cmd[0], {
-    args: [...cmd.slice(1), url],
-  });
-  
-  await process.output();
 } 
