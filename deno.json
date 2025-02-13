@@ -1,0 +1,21 @@
+{
+  "tasks": {
+    "noti": "deno run --allow-env --allow-read --allow-write --allow-net --allow-run src/main.ts",
+    "dev": "deno run --watch --allow-env --allow-read --allow-write --allow-net --allow-run src/main.ts",
+    "test": "deno test --allow-run",
+    "test:watch": "deno test --watch --allow-run"
+  },
+  "fmt": {
+    "options": {
+      "lineWidth": 80,
+      "indentWidth": 2,
+      "singleQuote": true
+    }
+  },
+  "compilerOptions": {
+    "strict": true
+  },
+  "imports": {
+    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7"
+  }
+}
