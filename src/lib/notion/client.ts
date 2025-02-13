@@ -91,4 +91,11 @@ export class NotionClient {
       children: params.blocks || [],
     });
   }
+
+  async removePage(pageId: string) {
+    return await this.client.pages.update({
+      page_id: pageId,
+      archived: true, // Notionではアーカイブが削除に相当
+    });
+  }
 } 

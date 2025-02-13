@@ -5,6 +5,7 @@ import { BlockToMarkdown } from "../lib/converter/block-to-markdown.ts";
 import { MarkdownToBlocks } from "../lib/converter/markdown-to-blocks.ts";
 import type { NotionBlocks } from "../lib/converter/types.ts";
 import { basename } from "../deps.ts";
+import { Input } from "../deps.ts";
 
 // NotionのURLまたはIDからページIDを抽出する関数
 function extractPageId(input: string): string {
@@ -219,6 +220,59 @@ export const pageCommand = new Command()
 
       } catch (error) {
         console.error("ページの作成に失敗しました:", error.message);
+        Deno.exit(1);
+      }
+    })
+  )
+  .command("remove", new Command()
+    .description("ページを削除（アーカイブ）")
+    .arguments("<page_id_or_url:string>")
+    .option("-d, --debug", "デバッグモード")
+    .option("-f, --force", "確認なしで削除")
+    .action(async (options, pageIdOrUrl) => {
+      const config = await Config.load();
+      const client = new NotionClient(config);
+      
+      try {
+        // ページIDの抽出
+        const pageId = extractPageId(pageIdOrUrl);
+        
+        if (options.debug) {
+          console.error("=== Debug: Page ID ===");
+          console.error(pageId);
+          console.error("========================");
+        }
+
+        // ページ情報の取得（タイトルを表示するため）
+        const page = await client.getPage(pageId);
+        const title = page.properties?.title?.title?.[0]?.plain_text || "Untitled";
+
+        // 確認プロンプト（--forceオプションがない場合）
+        if (!options.force) {
+          const answer = await Input.prompt({
+            message: `ページ「${title}」を削除しますか？`,
+            type: "confirm",
+            default: false,
+          });
+          if (!answer) {
+            console.error("削除をキャンセルしました。");
+            Deno.exit(0);
+          }
+        }
+
+        // ページの削除
+        const result = await client.removePage(pageId);
+        
+        if (options.debug) {
+          console.error("=== Debug: API Response ===");
+          console.error(JSON.stringify(result, null, 2));
+          console.error("========================");
+        }
+
+        console.error(`ページ「${title}」を削除しました。`);
+
+      } catch (error) {
+        console.error("ページの削除に失敗しました:", error.message);
         Deno.exit(1);
       }
     })
