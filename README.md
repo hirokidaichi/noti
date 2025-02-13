@@ -1,0 +1,2 @@
+# noti
+Notion CLI 
