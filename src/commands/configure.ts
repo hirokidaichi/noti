@@ -25,16 +25,8 @@ export const configureCommand = new Command()
       await client.validateToken();
 
       console.log("設定を保存しました。");
-      await say("設定を保存しました。");
     } catch (error) {
       console.error("設定の保存に失敗しました:", error.message);
       Deno.exit(1);
     }
-  });
-
-async function say(message: string) {
-  const process = new Deno.Command("say", {
-    args: [message],
-  });
-  await process.output();
-} 
+  }); 

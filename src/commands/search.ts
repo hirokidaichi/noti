@@ -83,14 +83,12 @@ export const searchCommand = new Command()
           JSON.stringify(items, null, 2)
         );
         console.error(`結果を ${options.output} に保存しました。`);
-        await say(`結果を ${options.output} に保存しました。`);
       } else {
         // インタラクティブモードの実装
         const selected = await fuzzyFinder(items);
         if (selected) {
           await openInBrowser(selected.url);
           console.error(`${selected.title} を開きました。`);
-          await say(`${selected.title} を開きました。`);
         }
       }
     } catch (error) {
@@ -262,13 +260,5 @@ async function openInBrowser(url: string) {
     args: [...cmd.slice(1), url],
   });
   
-  await process.output();
-}
-
-// 音声通知
-async function say(message: string) {
-  const process = new Deno.Command("say", {
-    args: [message],
-  });
   await process.output();
 } 

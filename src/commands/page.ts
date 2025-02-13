@@ -2,7 +2,9 @@ import { Command } from "../deps.ts";
 import { NotionClient } from "../lib/notion/client.ts";
 import { Config } from "../lib/config/config.ts";
 import { BlockToMarkdown } from "../lib/converter/block-to-markdown.ts";
+import { MarkdownToBlocks } from "../lib/converter/markdown-to-blocks.ts";
 import type { NotionBlocks } from "../lib/converter/types.ts";
+import { basename } from "../deps.ts";
 
 // NotionのURLまたはIDからページIDを抽出する関数
 function extractPageId(input: string): string {
@@ -89,13 +91,134 @@ export const pageCommand = new Command()
         if (options.output) {
           await Deno.writeTextFile(options.output, output);
           console.error(`出力を ${options.output} に保存しました。`);
-          await say(`出力を ${options.output} に保存しました。`);
         } else {
           console.log(output);
         }
 
       } catch (error) {
         console.error("ページの取得に失敗しました:", error.message);
+        Deno.exit(1);
+      }
+    })
+  )
+  .command("append", new Command()
+    .description("ページにコンテンツを追加")
+    .arguments("<page_id_or_url:string> <input_file:string>")
+    .option("-d, --debug", "デバッグモード")
+    .action(async (options, pageIdOrUrl, inputFile) => {
+      const config = await Config.load();
+      const client = new NotionClient(config);
+      
+      try {
+        // URLまたはIDからページIDを抽出
+        const pageId = extractPageId(pageIdOrUrl);
+        
+        if (options.debug) {
+          console.error("=== Debug: Extracted Page ID ===");
+          console.error(pageId);
+          console.error("========================");
+        }
+
+        // 入力ファイルの読み込み
+        const markdown = await Deno.readTextFile(inputFile);
+        
+        // MarkdownをNotionブロックに変換
+        const converter = new MarkdownToBlocks();
+        const { blocks } = converter.convert(markdown);
+        
+        if (options.debug) {
+          console.error("=== Debug: Converted Blocks ===");
+          console.error(JSON.stringify(blocks, null, 2));
+          console.error("========================");
+        }
+
+        // ブロックの追加
+        const result = await client.appendBlocks(pageId, blocks);
+        
+        if (options.debug) {
+          console.error("=== Debug: API Response ===");
+          console.error(JSON.stringify(result, null, 2));
+          console.error("========================");
+        }
+
+        console.error("コンテンツを追加しました。");
+
+      } catch (error) {
+        console.error("コンテンツの追加に失敗しました:", error.message);
+        Deno.exit(1);
+      }
+    })
+  )
+  .command("create", new Command()
+    .description("新規ページを作成")
+    .arguments("<parent_id_or_url:string> <input_file:string>")
+    .option("-t, --title <title:string>", "ページのタイトル")
+    .option("-d, --debug", "デバッグモード")
+    .action(async (options, parentIdOrUrl, inputFile) => {
+      const config = await Config.load();
+      const client = new NotionClient(config);
+      
+      try {
+        // 親ページIDの抽出
+        const parentId = extractPageId(parentIdOrUrl);
+        
+        if (options.debug) {
+          console.error("=== Debug: Parent Page ID ===");
+          console.error(parentId);
+          console.error("========================");
+        }
+
+        // 入力ファイルの読み込み
+        const markdown = await Deno.readTextFile(inputFile);
+        
+        // MarkdownをNotionブロックに変換
+        const converter = new MarkdownToBlocks();
+        const { blocks } = converter.convert(markdown);
+
+        // タイトルの決定
+        let title = options.title;
+        if (!title) {
+          // 最初のheading_1ブロックからタイトルを抽出
+          const firstHeading = blocks.find(block => 
+            block.type === "heading_1" && 
+            block.heading_1?.rich_text?.[0]?.text?.content
+          );
+          if (firstHeading) {
+            title = firstHeading.heading_1.rich_text[0].text.content;
+            // タイトルとして使用したheading_1は削除
+            blocks.splice(blocks.indexOf(firstHeading), 1);
+          } else {
+            // heading_1がない場合は、ファイル名から拡張子を除いたものをタイトルとして使用
+            const fileName = basename(inputFile);
+            title = fileName.replace(/\.[^/.]+$/, ""); // 拡張子を削除
+          }
+        }
+        
+        if (options.debug) {
+          console.error("=== Debug: Title ===");
+          console.error(title);
+          console.error("=== Debug: Blocks ===");
+          console.error(JSON.stringify(blocks, null, 2));
+          console.error("========================");
+        }
+
+        // ページの作成
+        const result = await client.createPage({
+          parentId,
+          title,
+          blocks,
+        });
+        
+        if (options.debug) {
+          console.error("=== Debug: API Response ===");
+          console.error(JSON.stringify(result, null, 2));
+          console.error("========================");
+        }
+
+        console.error("ページを作成しました:", result.url);
+
+      } catch (error) {
+        console.error("ページの作成に失敗しました:", error.message);
         Deno.exit(1);
       }
     })

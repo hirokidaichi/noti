@@ -49,9 +49,46 @@ export class NotionClient {
     });
   }
 
+  async appendBlocks(pageId: string, blocks: any[]) {
+    return await this.client.blocks.children.append({
+      block_id: pageId,
+      children: blocks,
+    });
+  }
+
   async getDatabase(databaseId: string) {
     return await this.client.databases.retrieve({
       database_id: databaseId,
+    });
+  }
+
+  async createPage(params: {
+    parentId: string;
+    title?: string;
+    blocks?: any[];
+  }) {
+    const parentType = params.parentId.includes("-") ? "database_id" : "page_id";
+    const properties: any = {};
+
+    if (parentType === "database_id") {
+      // データベースの場合、Titleプロパティは必須
+      properties.Name = {
+        title: params.title ? [{ text: { content: params.title } }] : [],
+      };
+    } else {
+      // 通常のページの場合
+      properties.title = {
+        title: params.title ? [{ text: { content: params.title } }] : [],
+      };
+    }
+
+    return await this.client.pages.create({
+      parent: {
+        type: parentType,
+        [parentType]: params.parentId,
+      },
+      properties,
+      children: params.blocks || [],
     });
   }
 } 
