@@ -2,6 +2,7 @@
 import { Command } from "../deps.ts";
 import { NotionClient } from "../lib/notion/client.ts";
 import { Config } from "../lib/config/config.ts";
+import { Logger } from "../lib/logger.ts";
 
 // Notionのプロパティの型定義
 interface NotionProperty {
@@ -79,6 +80,8 @@ export const searchCommand = new Command()
   .action(async ({ debug, parent }, query) => {
     const config = await Config.load();
     const client = new NotionClient(config);
+    const logger = Logger.getInstance();
+    logger.setDebugMode(!!debug);
     
     try {
       const searchParams: SearchParams = {
@@ -95,14 +98,12 @@ export const searchCommand = new Command()
       const results = await client.search(searchParams);
 
       if (results.results.length === 0) {
-        console.error("検索結果が見つかりませんでした。");
+        logger.info("検索結果が見つかりませんでした。");
         return;
       }
 
       if (debug) {
-        console.error("=== Debug: First Result ===");
-        console.error(JSON.stringify(results.results[0], null, 2));
-        console.error("========================");
+        logger.debug("First Result", results.results[0]);
       }
 
       // 検索結果をフォーマットしてタブ区切りで表示
@@ -110,12 +111,8 @@ export const searchCommand = new Command()
       items.forEach(item => {
         console.log(`${item.id}\t${item.title}`);
       });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        console.error("検索中にエラーが発生しました:", error.message);
-      } else {
-        console.error("検索中にエラーが発生しました:", error);
-      }
+    } catch (error) {
+      logger.error("検索中にエラーが発生しました", error);
       Deno.exit(1);
     }
   }); 

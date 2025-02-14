@@ -13,6 +13,7 @@ Deno.test("BlockToMarkdown - パラグラフの変換", () => {
           text: {
             content: "これはテストです。",
           },
+          plain_text: "これはテストです。"
         },
       ],
     },
@@ -28,19 +29,19 @@ Deno.test("BlockToMarkdown - 見出しの変換", () => {
     {
       type: "heading_1",
       heading_1: {
-        rich_text: [{ type: "text", text: { content: "見出し1" } }],
+        rich_text: [{ type: "text", text: { content: "見出し1" }, plain_text: "見出し1" }],
       },
     },
     {
       type: "heading_2",
       heading_2: {
-        rich_text: [{ type: "text", text: { content: "見出し2" } }],
+        rich_text: [{ type: "text", text: { content: "見出し2" }, plain_text: "見出し2" }],
       },
     },
     {
       type: "heading_3",
       heading_3: {
-        rich_text: [{ type: "text", text: { content: "見出し3" } }],
+        rich_text: [{ type: "text", text: { content: "見出し3" }, plain_text: "見出し3" }],
       },
     },
   ];
@@ -55,13 +56,13 @@ Deno.test("BlockToMarkdown - リストの変換", () => {
     {
       type: "bulleted_list_item",
       bulleted_list_item: {
-        rich_text: [{ type: "text", text: { content: "箇条書き1" } }],
+        rich_text: [{ type: "text", text: { content: "箇条書き1" }, plain_text: "箇条書き1" }],
       },
     },
     {
       type: "numbered_list_item",
       numbered_list_item: {
-        rich_text: [{ type: "text", text: { content: "番号付き1" } }],
+        rich_text: [{ type: "text", text: { content: "番号付き1" }, plain_text: "番号付き1" }],
       },
     },
   ];
@@ -82,6 +83,7 @@ Deno.test("BlockToMarkdown - コードブロックの変換", () => {
           text: {
             content: "const x = 1;",
           },
+          plain_text: "const x = 1;"
         },
       ],
     },
@@ -102,6 +104,7 @@ Deno.test("BlockToMarkdown - 引用の変換", () => {
           text: {
             content: "これは引用です",
           },
+          plain_text: "これは引用です"
         },
       ],
     },
@@ -117,44 +120,44 @@ Deno.test("BlockToMarkdown - 複合的なブロックの変換", () => {
     {
       type: "heading_1",
       heading_1: {
-        rich_text: [{ type: "text", text: { content: "タイトル" } }],
+        rich_text: [{ type: "text", text: { content: "タイトル" }, plain_text: "タイトル" }],
       },
     },
     {
       type: "paragraph",
       paragraph: {
-        rich_text: [{ type: "text", text: { content: "これは本文です。" } }],
+        rich_text: [{ type: "text", text: { content: "これは本文です。" }, plain_text: "これは本文です。" }],
       },
     },
     {
       type: "heading_2",
       heading_2: {
-        rich_text: [{ type: "text", text: { content: "セクション1" } }],
+        rich_text: [{ type: "text", text: { content: "セクション1" }, plain_text: "セクション1" }],
       },
     },
     {
       type: "bulleted_list_item",
       bulleted_list_item: {
-        rich_text: [{ type: "text", text: { content: "リスト1" } }],
+        rich_text: [{ type: "text", text: { content: "リスト1" }, plain_text: "リスト1" }],
       },
     },
     {
       type: "bulleted_list_item",
       bulleted_list_item: {
-        rich_text: [{ type: "text", text: { content: "リスト2" } }],
+        rich_text: [{ type: "text", text: { content: "リスト2" }, plain_text: "リスト2" }],
       },
     },
     {
       type: "code",
       code: {
         language: "typescript",
-        rich_text: [{ type: "text", text: { content: 'console.log("Hello");' } }],
+        rich_text: [{ type: "text", text: { content: 'console.log("Hello");' }, plain_text: 'console.log("Hello");' }],
       },
     },
     {
       type: "quote",
       quote: {
-        rich_text: [{ type: "text", text: { content: "引用文" } }],
+        rich_text: [{ type: "text", text: { content: "引用文" }, plain_text: "引用文" }],
       },
     },
   ];

@@ -3,6 +3,7 @@ import { NotionClient } from "../lib/notion/client.ts";
 import { Config } from "../lib/config/config.ts";
 import { TTYController } from "../lib/tty-controller.ts";
 import { FuzzyFinder } from "../lib/fuzzy-finder.ts";
+import { Logger } from "../lib/logger.ts";
 
 // Notionのプロパティの型定義
 interface NotionProperty {
@@ -122,6 +123,8 @@ export const searchFuzzyCommand = new Command()
     const config = await Config.load();
     const client = new NotionClient(config);
     const tty = new TTYController();
+    const logger = Logger.getInstance();
+    logger.setDebugMode(!!options.debug);
     
     try {
       const searchParams: SearchParams = {
@@ -138,19 +141,19 @@ export const searchFuzzyCommand = new Command()
       const results = await client.search(searchParams);
 
       if (results.results.length === 0) {
-        await tty.showError("検索結果が見つかりませんでした。");
+        logger.info("検索結果が見つかりませんでした。");
         return;
       }
 
       if (options.debug) {
-        await tty.showDebug(results.results[0]);
+        logger.debug("First Result", results.results[0]);
       }
 
       const items = formatNotionResults(results.results as NotionItem[]);
       const finder = new FuzzyFinder(items, tty);
       await finder.find(query || "");
     } catch (error) {
-      console.error(`エラーが発生しました: ${error}`);
+      logger.error("エラーが発生しました", error);
       Deno.exit(1);
     } finally {
       tty.cleanupSync();

@@ -65,12 +65,21 @@ export class MarkdownToBlocks {
   /**
    * テキストをリッチテキストに変換
    */
-  private convertToRichText(text: string): NotionRichText[] {
+  private createRichText(content: string): NotionRichText[] {
     return [{
       type: "text",
       text: {
-        content: text,
+        content,
       },
+      plain_text: content,
+      annotations: {
+        bold: false,
+        italic: false,
+        strikethrough: false,
+        underline: false,
+        code: false,
+        color: "default"
+      }
     }];
   }
 
@@ -81,7 +90,7 @@ export class MarkdownToBlocks {
     return {
       type: "paragraph",
       paragraph: {
-        rich_text: this.convertToRichText(token.text),
+        rich_text: this.createRichText(token.text),
       },
     };
   }
@@ -95,21 +104,21 @@ export class MarkdownToBlocks {
         return {
           type: "heading_1",
           heading_1: {
-            rich_text: this.convertToRichText(token.text),
+            rich_text: this.createRichText(token.text),
           },
         } as NotionHeading1Block;
       case 2:
         return {
           type: "heading_2",
           heading_2: {
-            rich_text: this.convertToRichText(token.text),
+            rich_text: this.createRichText(token.text),
           },
         } as NotionHeading2Block;
       case 3:
         return {
           type: "heading_3",
           heading_3: {
-            rich_text: this.convertToRichText(token.text),
+            rich_text: this.createRichText(token.text),
           },
         } as NotionHeading3Block;
       default:
@@ -117,7 +126,7 @@ export class MarkdownToBlocks {
         return {
           type: "paragraph",
           paragraph: {
-            rich_text: this.convertToRichText(token.text),
+            rich_text: this.createRichText(token.text),
           },
         };
     }
@@ -132,14 +141,14 @@ export class MarkdownToBlocks {
       return {
         type: "numbered_list_item",
         numbered_list_item: {
-          rich_text: this.convertToRichText(firstItem.text),
+          rich_text: this.createRichText(firstItem.text),
         },
       } as NotionNumberedListItemBlock;
     } else {
       return {
         type: "bulleted_list_item",
         bulleted_list_item: {
-          rich_text: this.convertToRichText(firstItem.text),
+          rich_text: this.createRichText(firstItem.text),
         },
       } as NotionBulletedListItemBlock;
     }
@@ -152,7 +161,7 @@ export class MarkdownToBlocks {
     return {
       type: "code",
       code: {
-        rich_text: this.convertToRichText(token.text),
+        rich_text: this.createRichText(token.text),
         language: token.lang || "plain text",
       },
     };
@@ -165,7 +174,7 @@ export class MarkdownToBlocks {
     return {
       type: "quote",
       quote: {
-        rich_text: this.convertToRichText(token.text),
+        rich_text: this.createRichText(token.text),
       },
     };
   }

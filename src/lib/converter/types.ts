@@ -13,7 +13,7 @@ export type NotionBlockType =
 
 // Notionのリッチテキスト要素の定義
 export interface NotionRichText {
-  type: "text";
+  type: string;
   text: {
     content: string;
     link?: {
@@ -21,12 +21,15 @@ export interface NotionRichText {
     };
   };
   annotations?: {
-    bold?: boolean;
-    italic?: boolean;
-    strikethrough?: boolean;
-    underline?: boolean;
-    code?: boolean;
+    bold: boolean;
+    italic: boolean;
+    strikethrough: boolean;
+    underline: boolean;
+    code: boolean;
+    color: string;
   };
+  plain_text: string;
+  href?: string;
 }
 
 // Notionのブロック要素の基本インターフェース

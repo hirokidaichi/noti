@@ -1,11 +1,13 @@
 import { Command, Input } from "../deps.ts";
 import { Config } from "../lib/config/config.ts";
 import { NotionClient } from "../lib/notion/client.ts";
+import { Logger } from "../lib/logger.ts";
 
 export const configureCommand = new Command()
   .name("configure")
   .description("Configure Notion API token")
   .action(async () => {
+    const logger = Logger.getInstance();
     try {
       const token = await Input.prompt({
         message: "Notion APIトークンを入力してください",
@@ -13,7 +15,7 @@ export const configureCommand = new Command()
       });
 
       if (!token) {
-        console.error("トークンが入力されていません。");
+        logger.error("トークンが入力されていません。");
         Deno.exit(1);
       }
 
@@ -24,9 +26,9 @@ export const configureCommand = new Command()
       const client = new NotionClient(config);
       await client.validateToken();
 
-      console.log("設定を保存しました。");
+      logger.success("設定を保存しました。");
     } catch (error) {
-      console.error("設定の保存に失敗しました:", error.message);
+      logger.error("設定の保存に失敗しました", error);
       Deno.exit(1);
     }
   }); 
