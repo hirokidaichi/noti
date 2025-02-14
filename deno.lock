@@ -20,9 +20,11 @@
     "jsr:@std/io@~0.224.9": "0.224.9",
     "jsr:@std/path@~0.220.1": "0.220.1",
     "jsr:@std/path@~1.0.6": "1.0.8",
+    "jsr:@std/testing@~0.220.1": "0.220.1",
     "jsr:@std/text@~1.0.7": "1.0.10",
     "npm:@notionhq/client@*": "2.2.15",
     "npm:@notionhq/client@2.2.14": "2.2.14",
+    "npm:@types/node@*": "22.5.4",
     "npm:cliffy@*": "2.5.1"
   },
   "jsr": {
@@ -79,7 +81,10 @@
       "integrity": "ad34d69a33ff34a15b9ca05c4734ae8058a27f115fded30ac6ee619740704413"
     },
     "@std/assert@0.220.1": {
-      "integrity": "88710d54f3afdd7a5761e7805abba1f56cd14e4b212feffeb3e73a9f77482425"
+      "integrity": "88710d54f3afdd7a5761e7805abba1f56cd14e4b212feffeb3e73a9f77482425",
+      "dependencies": [
+        "jsr:@std/fmt@~0.220.1"
+      ]
     },
     "@std/assert@1.0.11": {
       "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1"
@@ -117,6 +122,12 @@
     },
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    },
+    "@std/testing@0.220.1": {
+      "integrity": "be77cc1df543f70217d450612637f9f6fcc6887f19fca89665ce08456ee1f290",
+      "dependencies": [
+        "jsr:@std/assert@~0.220.1"
+      ]
     },
     "@std/text@1.0.10": {
       "integrity": "9dcab377450253c0efa9a9a0c731040bfd4e1c03f8303b5934381467b7954338"
