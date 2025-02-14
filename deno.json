@@ -1,9 +1,10 @@
 {
   "tasks": {
-    "noti": "deno run --allow-env --allow-read --allow-write --allow-net --allow-run src/main.ts",
+    "noti": "deno run -A src/main.ts",
     "dev": "deno run --watch --allow-env --allow-read --allow-write --allow-net --allow-run src/main.ts",
     "test": "deno test --allow-run",
-    "test:watch": "deno test --watch --allow-run"
+    "test:watch": "deno test --watch --allow-run",
+    "termbox-test": "deno run -A src/main.ts termbox-test"
   },
   "fmt": {
     "options": {
@@ -16,6 +17,7 @@
     "strict": true
   },
   "imports": {
-    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7"
+    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7",
+    "@deno-library/termbox": "jsr:@deno-library/termbox@^0.2.1"
   }
 }

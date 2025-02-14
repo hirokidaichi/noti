@@ -15,7 +15,7 @@ export class NotionClient {
 
   async validateToken() {
     try {
-      await this.client.users.me();
+      await this.client.users.me({});
       return true;
     } catch (error) {
       throw new Error("APIトークンが無効です。");
@@ -25,10 +25,15 @@ export class NotionClient {
   async search(params: {
     query: string;
     page_size?: number;
+    filter?: {
+      property: "object";
+      value: "page" | "database";
+    };
   }) {
     return await this.client.search({
       query: params.query,
       page_size: params.page_size,
+      filter: params.filter,
       sort: {
         direction: "descending",
         timestamp: "last_edited_time",
@@ -82,11 +87,12 @@ export class NotionClient {
       };
     }
 
+    const parent = parentType === "database_id"
+      ? { database_id: params.parentId }
+      : { page_id: params.parentId };
+
     return await this.client.pages.create({
-      parent: {
-        type: parentType,
-        [parentType]: params.parentId,
-      },
+      parent,
       properties,
       children: params.blocks || [],
     });
