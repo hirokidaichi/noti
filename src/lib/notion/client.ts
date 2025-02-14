@@ -1,6 +1,21 @@
 import { Client } from "../../deps.ts";
 import { Config } from "../config/config.ts";
 
+// Notionのブロック型定義
+interface BlockObject {
+  object: "block";
+  type: string;
+  [key: string]: unknown;
+}
+
+// Notionのプロパティ型定義
+interface PageProperties {
+  [key: string]: {
+    type: string;
+    [key: string]: unknown;
+  };
+}
+
 export class NotionClient {
   private client: Client;
 
@@ -17,7 +32,7 @@ export class NotionClient {
     try {
       await this.client.users.me({});
       return true;
-    } catch (error) {
+    } catch (_error) {
       throw new Error("APIトークンが無効です。");
     }
   }
@@ -54,10 +69,10 @@ export class NotionClient {
     });
   }
 
-  async appendBlocks(pageId: string, blocks: any[]) {
+  async appendBlocks(pageId: string, blocks: unknown[]) {
     return await this.client.blocks.children.append({
       block_id: pageId,
-      children: blocks,
+      children: blocks as Parameters<typeof this.client.blocks.children.append>[0]["children"],
     });
   }
 
@@ -70,22 +85,22 @@ export class NotionClient {
   async createPage(params: {
     parentId: string;
     title?: string;
-    blocks?: any[];
+    blocks?: unknown[];
   }) {
     const parentType = params.parentId.includes("-") ? "database_id" : "page_id";
-    const properties: any = {};
-
-    if (parentType === "database_id") {
-      // データベースの場合、Titleプロパティは必須
-      properties.Name = {
-        title: params.title ? [{ text: { content: params.title } }] : [],
-      };
-    } else {
-      // 通常のページの場合
-      properties.title = {
-        title: params.title ? [{ text: { content: params.title } }] : [],
-      };
-    }
+    const properties = {
+      ...(parentType === "database_id" ? {
+        Name: {
+          type: "title",
+          title: params.title ? [{ text: { content: params.title } }] : [],
+        },
+      } : {
+        title: {
+          type: "title",
+          title: params.title ? [{ text: { content: params.title } }] : [],
+        },
+      }),
+    } as Parameters<typeof this.client.pages.create>[0]["properties"];
 
     const parent = parentType === "database_id"
       ? { database_id: params.parentId }
@@ -94,7 +109,7 @@ export class NotionClient {
     return await this.client.pages.create({
       parent,
       properties,
-      children: params.blocks || [],
+      children: params.blocks as Parameters<typeof this.client.pages.create>[0]["children"],
     });
   }
 

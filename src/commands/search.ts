@@ -3,16 +3,48 @@ import { Command } from "../deps.ts";
 import { NotionClient } from "../lib/notion/client.ts";
 import { Config } from "../lib/config/config.ts";
 
+// Notionのプロパティの型定義
+interface NotionProperty {
+  type: string;
+  title?: {
+    plain_text: string;
+  }[];
+}
+
+interface NotionItem {
+  id: string;
+  object: string;
+  parent: {
+    type: string;
+  };
+  properties: Record<string, NotionProperty>;
+  title?: { plain_text: string }[];
+}
+
+interface SearchResult {
+  id: string;
+  title: string;
+}
+
+interface SearchParams {
+  query: string;
+  page_size: number;
+  filter?: {
+    property: "object";
+    value: "page" | "database";
+  };
+}
+
 // 検索結果の整形用ヘルパー関数
-function formatNotionResults(results: any[]) {
-  return results.map((item: any) => {
+function formatNotionResults(results: NotionItem[]): SearchResult[] {
+  return results.map((item: NotionItem) => {
     let title = "Untitled";
     
     if (item.object === "page") {
       if (item.parent.type === "database_id") {
-        for (const [key, value] of Object.entries(item.properties)) {
+        for (const [_key, value] of Object.entries(item.properties)) {
           if (value.type === "title") {
-            title = value.title[0]?.plain_text || "Untitled";
+            title = value.title?.[0]?.plain_text || "Untitled";
             break;
           }
         }
@@ -20,7 +52,7 @@ function formatNotionResults(results: any[]) {
         title = item.properties?.title?.title?.[0]?.plain_text || "Untitled";
       }
     } else if (item.object === "database") {
-      title = item.title[0]?.plain_text || "Untitled Database";
+      title = item.title?.[0]?.plain_text || "Untitled Database";
     }
 
     // 改行をエスケープ
@@ -49,17 +81,16 @@ export const searchCommand = new Command()
     const client = new NotionClient(config);
     
     try {
-      const searchParams: any = {
+      const searchParams: SearchParams = {
         query: query || "",
         page_size: 100,
+        ...(parent ? {
+          filter: {
+            property: "object" as const,
+            value: "page" as const,
+          },
+        } : {}),
       };
-
-      if (parent) {
-        searchParams.filter = {
-          property: "parent",
-          value: parent,
-        };
-      }
 
       const results = await client.search(searchParams);
 
@@ -75,7 +106,7 @@ export const searchCommand = new Command()
       }
 
       // 検索結果をフォーマットしてタブ区切りで表示
-      const items = formatNotionResults(results.results);
+      const items = formatNotionResults(results.results as NotionItem[]);
       items.forEach(item => {
         console.log(`${item.id}\t${item.title}`);
       });

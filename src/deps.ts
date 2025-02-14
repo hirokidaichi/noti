@@ -8,6 +8,10 @@ export { ensureDir } from "jsr:@std/fs@^0.220.1";
 
 // Notion SDK
 export { Client } from "npm:@notionhq/client@2.2.14";
+export type {
+  BlockObjectRequest,
+  CreatePageParameters,
+} from "npm:@notionhq/client@2.2.14";
 
 // Types
 export type { Command as CommandType } from "jsr:@cliffy/command@^1.0.0-rc.7"; 

@@ -1,5 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
 import { MarkdownToBlocks } from "./markdown-to-blocks.ts";
+import { NotionParagraphBlock, NotionCodeBlock } from "./types.ts";
 
 Deno.test("MarkdownToBlocks - パラグラフの変換", () => {
   const converter = new MarkdownToBlocks();
@@ -9,7 +10,7 @@ Deno.test("MarkdownToBlocks - パラグラフの変換", () => {
   assertEquals(result.blocks.length, 1);
   assertEquals(result.blocks[0].type, "paragraph");
   assertEquals(
-    (result.blocks[0] as any).paragraph.rich_text[0].text.content,
+    (result.blocks[0] as NotionParagraphBlock).paragraph.rich_text[0].text.content,
     "これはテストです。"
   );
 });
@@ -42,7 +43,7 @@ Deno.test("MarkdownToBlocks - コードブロックの変換", () => {
 
   assertEquals(result.blocks.length, 1);
   assertEquals(result.blocks[0].type, "code");
-  assertEquals((result.blocks[0] as any).code.language, "typescript");
+  assertEquals((result.blocks[0] as NotionCodeBlock).code.language, "typescript");
 });
 
 Deno.test("MarkdownToBlocks - 引用の変換", () => {

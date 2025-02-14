@@ -9,7 +9,7 @@ export interface NotificationMessage {
 /**
  * 通知を送信する関数
  */
-export async function sendNotification(message: NotificationMessage): Promise<boolean> {
+export function sendNotification(message: NotificationMessage): boolean {
   try {
     // 今はシンプルにコンソールに出力するだけ
     console.log(`[${message.title}] ${message.body || ''}`);

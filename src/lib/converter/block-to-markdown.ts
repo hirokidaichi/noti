@@ -9,7 +9,17 @@ import {
   NotionNumberedListItemBlock,
   NotionCodeBlock,
   NotionQuoteBlock,
+  NotionTodoBlock,
 } from "./types.ts";
+
+// Notionプロパティの型定義
+interface NotionProperty {
+  type: string;
+  title?: { plain_text: string }[];
+  rich_text?: { plain_text: string }[];
+  date?: { start: string };
+  url?: string;
+}
 
 export class BlockToMarkdown {
   private convertRichText(richText: NotionRichText[]): string {
@@ -72,16 +82,16 @@ export class BlockToMarkdown {
     return markdown;
   }
 
-  convertProperties(properties: Record<string, any>): string {
+  convertProperties(properties: Record<string, NotionProperty>): string {
     let markdown = "";
     
     for (const [key, value] of Object.entries(properties)) {
       switch (value.type) {
         case "title":
-          markdown += `# ${value.title[0]?.plain_text || ""}\n\n`;
+          markdown += `# ${value.title?.[0]?.plain_text || ""}\n\n`;
           break;
         case "rich_text":
-          markdown += `**${key}**: ${value.rich_text[0]?.plain_text || ""}\n\n`;
+          markdown += `**${key}**: ${value.rich_text?.[0]?.plain_text || ""}\n\n`;
           break;
         case "date":
           markdown += `**${key}**: ${value.date?.start || ""}\n\n`;
@@ -123,10 +133,10 @@ export class BlockToMarkdown {
     }
   }
 
-  private convertTodo(block: any): string {
+  private convertTodo(block: NotionTodoBlock): string {
     const checked = block.to_do.checked ? "x" : " ";
     return `- [${checked}] ` + block.to_do.rich_text
-      .map((text: any) => text.plain_text)
+      .map((text: NotionRichText) => text.plain_text)
       .join("") + "\n";
   }
 }

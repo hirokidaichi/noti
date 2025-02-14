@@ -2,43 +2,7 @@ import { Command } from "../deps.ts";
 import { NotionClient } from "../lib/notion/client.ts";
 import { Config } from "../lib/config/config.ts";
 import { TTYController } from "../lib/tty-controller.ts";
-import { FuzzyFinder, SearchItem } from "../lib/fuzzy-finder.ts";
-
-// ANSIエスケープシーケンス
-const ANSI = {
-  reset: "\x1b[0m",
-  reverse: "\x1b[7m",
-  clear: "\x1b[2J\x1b[H",  // 画面クリアとカーソルをホームポジションへ
-  clearToEnd: "\x1b[J",    // カーソル位置から画面末尾までクリア
-  clearLine: "\x1b[2K\r",  // 現在行をクリアして行頭へ
-  moveCursor: (y: number) => `\x1b[${y}H`,
-  moveToHome: "\x1b[H",    // カーソルをホームポジションへ
-  saveCursor: "\x1b[s",
-  restoreCursor: "\x1b[u",
-  hideCursor: "\x1b[?25l",
-  showCursor: "\x1b[?25h",
-};
-
-// デバウンス処理用の関数
-function debounce<T, Args extends unknown[]>(
-  fn: (...args: Args) => Promise<T>,
-  delay: number
-): (...args: Args) => Promise<T> {
-  let timeoutId: number | undefined;
-
-  return (...args: Args): Promise<T> => {
-    return new Promise((resolve) => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-
-      timeoutId = setTimeout(async () => {
-        const result = await fn(...args);
-        resolve(result);
-      }, delay);
-    });
-  };
-}
+import { FuzzyFinder } from "../lib/fuzzy-finder.ts";
 
 // Notionのプロパティの型定義
 interface NotionProperty {
@@ -59,14 +23,24 @@ interface NotionItem {
   title?: { plain_text: string }[];
 }
 
-// コマンドのオプション型定義
-interface SearchOptions {
-  debug: boolean;
-  parent?: string;
+interface SearchParams {
+  query: string;
+  page_size: number;
+  filter?: {
+    property: "object";
+    value: "page" | "database";
+  };
+}
+
+interface SearchResult {
+  id: string;
+  title: string;
+  type: string;
+  url?: string;
 }
 
 // 検索結果の整形用ヘルパー関数
-function formatNotionResults(results: NotionItem[]): SearchItem[] {
+function formatNotionResults(results: NotionItem[]): SearchResult[] {
   return results.map((item) => {
     let title = "Untitled";
     
@@ -101,27 +75,8 @@ function formatNotionResults(results: NotionItem[]): SearchItem[] {
   });
 }
 
-// ターミナルのサイズを取得する関数
-function getTerminalSize() {
-  const defaultSize = { columns: 80, rows: 24 };
-  
-  try {
-    const { columns, rows } = Deno.consoleSize();
-    return { columns, rows };
-  } catch {
-    return defaultSize;
-  }
-}
-
-interface SearchResult {
-  id: string;
-  title: string;
-  type: string;
-  url?: string;
-}
-
 // 標準入力から行を読み込む関数
-async function readStdinLines(): Promise<string[]> {
+async function _readStdinLines(): Promise<string[]> {
   const lines: string[] = [];
   const buffer = new Uint8Array(1024);
   
@@ -147,122 +102,8 @@ async function readStdinLines(): Promise<string[]> {
   return lines.filter(line => line.trim().length > 0);
 }
 
-// Fuzzy Finder の実装
-async function fuzzyFinder(
-  items: SearchResult[],
-  initialQuery: string = "",
-  client: NotionClient,
-  parentId?: string
-): Promise<SearchResult | null> {
-  // 標準入力から行を読み込む
-  const stdinLines = await readStdinLines();
-  if (stdinLines.length > 0) {
-    // 標準入力から読み込んだ行を検索結果として使用
-    items = stdinLines.map(line => ({
-      id: line,
-      title: line,
-      type: "page",
-      url: line
-    }));
-  }
-
-  let selectedItem: SearchResult | null = null;
-  let currentResults = items;
-  let searchText = initialQuery;
-  let selectedIndex = 0;
-
-  // TTYコントローラーを初期化
-  const tty = new TTYController();
-  
-  try {
-    // rawモードを設定
-    tty.enableRawMode();
-    
-    // 初期表示
-    await tty.displayResults(currentResults, searchText, selectedIndex, !initialQuery);
-    
-    const buf = new Uint8Array(1024);
-    while (true) {
-      const n = await tty.read(buf);
-      if (n === null) break;
-
-      const input = new TextDecoder().decode(buf.subarray(0, n));
-      let needsUpdate = false;
-      
-      if (input === "\x03") { // Ctrl+C
-        selectedItem = null;
-        break;
-      }
-
-      if (input === "\r") { // Enter
-        if (currentResults.length > 0) {
-          selectedItem = currentResults[selectedIndex];
-          break;
-        }
-        continue;
-      }
-
-      if (input === "\x7f") { // Backspace
-        if (searchText.length > 0) {
-          searchText = searchText.slice(0, -1);
-          currentResults = fuzzySearch(items, searchText);
-          selectedIndex = 0;
-          needsUpdate = true;
-        }
-      }
-      else if (input === "\x1b[A") { // Up arrow
-        if (currentResults.length > 0) {
-          selectedIndex = Math.max(0, selectedIndex - 1);
-          needsUpdate = true;
-        }
-      }
-      else if (input === "\x1b[B") { // Down arrow
-        if (currentResults.length > 0) {
-          selectedIndex = Math.min(currentResults.length - 1, selectedIndex + 1);
-          needsUpdate = true;
-        }
-      }
-      else if (!input.startsWith("\x1b")) { // 通常の文字入力
-        searchText += input;
-        currentResults = fuzzySearch(items, searchText);
-        selectedIndex = 0;
-        needsUpdate = true;
-      }
-
-      if (needsUpdate) {
-        await tty.displayResults(currentResults, searchText, selectedIndex, false);
-      }
-    }
-  } finally {
-    // TTYのクリーンアップ
-    tty.cleanupSync();
-  }
-
-  // 最終的な選択結果を標準出力に出力
-  if (selectedItem) {
-    // 標準出力がパイプまたはリダイレクトされている場合
-    if (!Deno.stdout.isTerminal) {
-      // IDのみを出力
-      Deno.stdout.writeSync(new TextEncoder().encode(selectedItem.id + "\n"));
-    } else {
-      // ターミナルの場合は選択結果の詳細を表示
-      const output = [
-        "\n選択されたアイテム:",
-        `ID: ${selectedItem.id}`,
-        `タイトル: ${selectedItem.title}`,
-        `タイプ: ${selectedItem.type}`,
-        selectedItem.url ? `URL: ${selectedItem.url}` : "",
-      ].filter(Boolean).join("\n") + "\n";
-      
-      Deno.stdout.writeSync(new TextEncoder().encode(output));
-    }
-  }
-
-  return selectedItem;
-}
-
 // 簡易的なファジー検索の実装
-function fuzzySearch(items: SearchResult[], query: string): SearchResult[] {
+function _fuzzySearch(items: SearchResult[], query: string): SearchResult[] {
   if (!query) return items;
   
   const lowerQuery = query.toLowerCase();
@@ -283,7 +124,7 @@ export const searchFuzzyCommand = new Command()
     const tty = new TTYController();
     
     try {
-      const searchParams = {
+      const searchParams: SearchParams = {
         query: query || "",
         page_size: 100,
         ...(options.parent ? {
