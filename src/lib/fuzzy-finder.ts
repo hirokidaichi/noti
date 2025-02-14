@@ -176,7 +176,8 @@ export class FuzzyFinder {
           }
         }
       } finally {
-        // TTYのクリーンアップはここでは行わない（呼び出し元で行う）
+        // TTYのクリーンアップを実行
+        this.tty.cleanupSync();
       }
 
       return this.selectedIndex >= 0 && this.currentResults.length > 0

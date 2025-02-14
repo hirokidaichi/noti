@@ -6,6 +6,7 @@ import { MarkdownToBlocks } from "../lib/converter/markdown-to-blocks.ts";
 import type { NotionBlocks, NotionHeading1Block } from "../lib/converter/types.ts";
 import { basename } from "../deps.ts";
 import { Logger } from "../lib/logger.ts";
+import { NotionPageId } from "../lib/notion/page-uri.ts";
 
 // エラー型の定義
 interface NotionError {
@@ -29,26 +30,11 @@ interface CreatePageResponse {
 
 // NotionのURLまたはIDからページIDを抽出する関数
 function extractPageId(input: string): string {
-  // URLの場合
-  if (input.includes("notion.so")) {
-    // URLからページIDを抽出するための正規表現
-    // 以下のようなパターンに対応:
-    // - https://www.notion.so/ページタイトル-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // - https://www.notion.so/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    // - @https://www.notion.so/ページタイトル-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-    const match = input.match(/[a-f0-9]{32}$/i);
-    if (!match) {
-      throw new Error("無効なNotion URLです。ページIDが見つかりません。");
-    }
-    return match[0];
+  const pageId = NotionPageId.fromString(input);
+  if (!pageId) {
+    throw new Error("無効なページIDまたはURLです。32文字の16進数である必要があります。");
   }
-
-  // 既にIDの形式の場合
-  if (/^[a-f0-9]{32}$/i.test(input)) {
-    return input;
-  }
-
-  throw new Error("無効なページIDまたはURLです。");
+  return pageId.toShortId();
 }
 
 // 確認プロンプトを表示する関数

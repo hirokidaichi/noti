@@ -151,7 +151,14 @@ export const searchFuzzyCommand = new Command()
 
       const items = formatNotionResults(results.results as NotionItem[]);
       const finder = new FuzzyFinder(items, tty);
-      await finder.find(query || "");
+      const selectedItem = await finder.find(query || "");
+
+      if (selectedItem) {
+        console.clear();
+        //setTimeout(() => {
+          console.log(selectedItem);
+        //}/, 0);
+      }
     } catch (error) {
       logger.error("エラーが発生しました", error);
       Deno.exit(1);
