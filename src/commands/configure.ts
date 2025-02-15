@@ -1,35 +1,31 @@
-import { Command } from "jsr:@cliffy/command@^1.0.0-rc.7";
-import { Input } from "jsr:@cliffy/prompt@^1.0.0-rc.7";
-import { Config } from "../lib/config/config.ts";
-import { NotionClient } from "../lib/notion/client.ts";
-import { Logger } from "../lib/logger.ts";
+import { Command } from '@cliffy/command';
+import { Input } from '@cliffy/prompt';
+import { Config } from '../lib/config/config.ts';
+import { OutputHandler } from '../lib/command-utils/output-handler.ts';
+import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
 
 export const configureCommand = new Command()
-  .name("configure")
-  .description("Configure Notion API token")
-  .action(async () => {
-    const logger = Logger.getInstance();
-    try {
+  .name('configure')
+  .description('Notionの設定を行います')
+  .option('-d, --debug', 'デバッグモード')
+  .action(async (options) => {
+    const outputHandler = new OutputHandler({ debug: options.debug });
+    const errorHandler = new ErrorHandler();
+
+    await errorHandler.withErrorHandling(async () => {
+      const config = await Config.load();
+      outputHandler.debug('Current Config:', config);
+
       const token = await Input.prompt({
-        message: "Notion APIトークンを入力してください",
-        hint: "https://www.notion.so/my-integrations から取得できます",
+        message: 'Notion Integration Token を入力してください:',
+        default: config.token || '',
       });
 
-      if (!token) {
-        logger.error("トークンが入力されていません。");
-        Deno.exit(1);
+      if (token) {
+        await Config.update({ apiToken: token });
+        outputHandler.success('設定を保存しました');
+      } else {
+        outputHandler.info('設定をキャンセルしました');
       }
-
-      // 設定を保存
-      const config = await Config.update({ apiToken: token });
-
-      // トークンの検証
-      const client = new NotionClient(config);
-      await client.validateToken();
-
-      logger.success("設定を保存しました。");
-    } catch (error) {
-      logger.error("設定の保存に失敗しました", error);
-      Deno.exit(1);
-    }
-  }); 
+    }, '設定の保存に失敗しました');
+  });

@@ -91,6 +91,10 @@ export class NotionClient {
     }
   }
 
+  async getMe() {
+    return await this.client.users.me({});
+  }
+
   async search(params: {
     query: string;
     page_size?: number;

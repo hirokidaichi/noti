@@ -2,10 +2,11 @@
 import { Command } from '@cliffy/command';
 import { NotionClient } from '../lib/notion/client.ts';
 import { Config } from '../lib/config/config.ts';
-import { Logger } from '../lib/logger.ts';
 import { FuzzyFinder, SearchItem } from '../lib/fuzzy-finder.ts';
 import { TTYController } from '../lib/tty-controller.ts';
 import { databasePageCommand } from './database-page.ts';
+import { OutputHandler } from '../lib/command-utils/output-handler.ts';
+import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
 
 interface ListOptions {
   limit: number;
@@ -27,19 +28,20 @@ export const databaseCommand = new Command()
       .option('-j, --json', 'JSON形式で出力')
       .option('-d, --debug', 'デバッグモード')
       .action(async (options: ListOptions) => {
-        const config = await Config.load();
-        const client = new NotionClient(config);
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        const errorHandler = new ErrorHandler();
 
-        try {
-          logger.debug('Fetching databases with options:', options);
+        await errorHandler.withErrorHandling(async () => {
+          const config = await Config.load();
+          const client = new NotionClient(config);
+
+          outputHandler.debug('Fetching databases with options:', options);
 
           const response = await client.listDatabases({
             page_size: options.limit,
           });
 
-          logger.debug('Raw Response:', response);
+          outputHandler.debug('Raw Response:', response);
 
           const databases = response.results.map((db: any) => {
             const title = db.title?.[0]?.plain_text ||
@@ -56,15 +58,13 @@ export const databaseCommand = new Command()
 
           if (options.json) {
             // JSON形式での出力
-            const output = JSON.stringify(databases, null, 2);
-            if (options.output) {
-              await Deno.writeTextFile(options.output, output);
-              logger.success(
-                `データベース一覧を${options.output}に保存しました`,
-              );
-            } else {
-              console.log(output);
-            }
+            await outputHandler.handleOutput(
+              JSON.stringify(databases, null, 2),
+              {
+                output: options.output,
+                json: true,
+              },
+            );
             return;
           }
 
@@ -86,9 +86,6 @@ export const databaseCommand = new Command()
               console.log(selectedDb.id);
             }
           }
-        } catch (error) {
-          logger.error('データベース一覧の取得に失敗しました:', error);
-          Deno.exit(1);
-        }
+        }, 'データベース一覧の取得に失敗しました');
       }),
   );

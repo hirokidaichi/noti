@@ -2,9 +2,6 @@ import { Command } from '@cliffy/command';
 import { Checkbox, Confirm, Input, Select } from '@cliffy/prompt';
 import { NotionClient } from '../lib/notion/client.ts';
 import { Config } from '../lib/config/config.ts';
-import { Logger } from '../lib/logger.ts';
-import { NotionPageId } from '../lib/notion/page-uri.ts';
-import { AliasManager } from '../lib/config/aliases.ts';
 import type {
   BlockObjectResponse,
   CreatePageParameters,
@@ -12,6 +9,9 @@ import type {
 } from '@notionhq/client/build/src/api-endpoints.js';
 import { BlockToMarkdown } from '../lib/converter/block-to-markdown.ts';
 import type { NotionBlocks } from '../lib/converter/types.ts';
+import { OutputHandler } from '../lib/command-utils/output-handler.ts';
+import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
+import { PageResolver } from '../lib/command-utils/page-resolver.ts';
 
 // データベースのプロパティ型定義
 interface DatabaseProperty {
@@ -155,25 +155,21 @@ export const databasePageCommand = new Command()
       .arguments('<database_id_or_url:string>')
       .option('-d, --debug', 'デバッグモード')
       .action(async (options, databaseIdOrUrl) => {
-        const config = await Config.load();
-        const client = new NotionClient(config);
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        const errorHandler = new ErrorHandler();
+        const pageResolver = await PageResolver.create();
 
-        try {
+        await errorHandler.withErrorHandling(async () => {
+          const config = await Config.load();
+          const client = new NotionClient(config);
+
           // データベースIDの解決
-          const aliasManager = await AliasManager.load();
-          const resolvedId = aliasManager.get(databaseIdOrUrl) ||
-            databaseIdOrUrl;
-          const databaseId = NotionPageId.fromString(resolvedId)?.toShortId();
-
-          if (!databaseId) {
-            throw new Error('無効なデータベースIDまたはURLです');
-          }
+          const databaseId = await pageResolver.resolvePageId(databaseIdOrUrl);
+          outputHandler.debug('Database ID:', databaseId);
 
           // データベース情報の取得
           const database = await client.getDatabase(databaseId);
-          logger.debug('Database Info:', database);
+          outputHandler.debug('Database Info:', database);
 
           // プロパティ情報の整理
           const properties: Record<string, DatabaseProperty> = {};
@@ -271,18 +267,15 @@ export const databasePageCommand = new Command()
           }
 
           // ページの作成
-          logger.debug('Property Values:', propertyValues);
+          outputHandler.debug('Property Values:', propertyValues);
           const response = await client.createDatabasePage(
             databaseId,
             propertyValues,
           );
-          logger.debug('API Response:', response);
+          outputHandler.debug('API Response:', response);
 
-          logger.success('データベースページを作成しました');
-        } catch (error) {
-          logger.error('データベースページの作成に失敗しました:', error);
-          Deno.exit(1);
-        }
+          outputHandler.success('データベースページを作成しました');
+        }, 'データベースページの作成に失敗しました');
       }),
   )
   .command(
@@ -294,83 +287,66 @@ export const databasePageCommand = new Command()
       .option('-j, --json', 'JSON形式で出力')
       .option('-o, --output <path:string>', '出力ファイルパス')
       .action(async (options, databasePageIdOrUrl) => {
-        const config = await Config.load();
-        const client = new NotionClient(config);
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        const errorHandler = new ErrorHandler();
+        const pageResolver = await PageResolver.create();
 
-        try {
+        await errorHandler.withErrorHandling(async () => {
+          const config = await Config.load();
+          const client = new NotionClient(config);
+
           // ページIDの解決
-          const aliasManager = await AliasManager.load();
-          const resolvedId = aliasManager.get(databasePageIdOrUrl) ||
-            databasePageIdOrUrl;
-          const pageId = NotionPageId.fromString(resolvedId)?.toShortId();
-
-          if (!pageId) {
-            throw new Error('無効なページIDまたはURLです');
-          }
+          const pageId = await pageResolver.resolvePageId(databasePageIdOrUrl);
+          outputHandler.debug('Page ID:', pageId);
 
           // ページ情報の取得
           const page = await client.getPage(pageId) as PageObjectResponse;
-          logger.debug('Page Info:', page);
+          outputHandler.debug('Page Info:', page);
 
           // ブロックの取得
           const blocks = await client.getBlocks(pageId);
-          logger.debug('Blocks:', blocks);
+          outputHandler.debug('Blocks:', blocks);
 
           if (options.json) {
             // JSON形式での出力
-            const output = JSON.stringify(
+            await outputHandler.handleOutput(
+              JSON.stringify(
+                {
+                  page,
+                  blocks: blocks.results,
+                },
+                null,
+                2,
+              ),
               {
-                page,
-                blocks: blocks.results,
+                output: options.output,
+                json: true,
               },
-              null,
-              2,
             );
-
-            if (options.output) {
-              await Deno.writeTextFile(options.output, output);
-              logger.success(`ページ情報を${options.output}に保存しました`);
-            } else {
-              console.log(output);
-            }
             return;
           }
 
-          // プロパティの出力
-          console.log('# プロパティ');
-          for (const [key, value] of Object.entries(page.properties)) {
-            const displayValue = formatPropertyForDisplay(value);
-            console.log(`- ${key}: ${displayValue}`);
-          }
+          // プロパティとブロックのMarkdown形式での出力
+          const propertiesMarkdown = Object.entries(page.properties)
+            .map(([key, value]) =>
+              `- ${key}: ${formatPropertyForDisplay(value)}`
+            )
+            .join('\n');
 
-          // ブロックの出力
-          console.log('\n# コンテンツ');
           const converter = new BlockToMarkdown();
-          const markdown = converter.convert(
+          const blocksMarkdown = converter.convert(
             blocks.results.filter((block): block is BlockObjectResponse =>
               'type' in block
             ) as NotionBlocks[],
           );
-          console.log(markdown);
 
-          if (options.output) {
-            const output = `# プロパティ\n${
-              Object.entries(page.properties)
-                .map(([key, value]) =>
-                  `- ${key}: ${formatPropertyForDisplay(value)}`
-                )
-                .join('\n')
-            }\n\n# コンテンツ\n${markdown}`;
+          const output =
+            `# プロパティ\n${propertiesMarkdown}\n\n# コンテンツ\n${blocksMarkdown}`;
 
-            await Deno.writeTextFile(options.output, output);
-            logger.success(`ページ情報を${options.output}に保存しました`);
-          }
-        } catch (error) {
-          logger.error('ページ情報の取得に失敗しました:', error);
-          Deno.exit(1);
-        }
+          await outputHandler.handleOutput(output, {
+            output: options.output,
+          });
+        }, 'ページ情報の取得に失敗しました');
       }),
   )
   .command(
@@ -380,9 +356,8 @@ export const databasePageCommand = new Command()
       .arguments('<database_page_id_or_url:string>')
       .option('-d, --debug', 'デバッグモード')
       .action((options, _databasePageIdOrUrl) => {
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
-        logger.info('データベースページの更新機能は未実装です');
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        outputHandler.info('データベースページの更新機能は未実装です');
       }),
   )
   .command(
@@ -393,25 +368,21 @@ export const databasePageCommand = new Command()
       .option('-d, --debug', 'デバッグモード')
       .option('-f, --force', '確認なしで削除')
       .action(async (options, databasePageIdOrUrl) => {
-        const config = await Config.load();
-        const client = new NotionClient(config);
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        const errorHandler = new ErrorHandler();
+        const pageResolver = await PageResolver.create();
 
-        try {
+        await errorHandler.withErrorHandling(async () => {
+          const config = await Config.load();
+          const client = new NotionClient(config);
+
           // ページIDの解決
-          const aliasManager = await AliasManager.load();
-          const resolvedId = aliasManager.get(databasePageIdOrUrl) ||
-            databasePageIdOrUrl;
-          const pageId = NotionPageId.fromString(resolvedId)?.toShortId();
-
-          if (!pageId) {
-            throw new Error('無効なページIDまたはURLです');
-          }
+          const pageId = await pageResolver.resolvePageId(databasePageIdOrUrl);
+          outputHandler.debug('Page ID:', pageId);
 
           // ページ情報の取得
           const page = await client.getPage(pageId) as PageObjectResponse;
-          logger.debug('Page Info:', page);
+          outputHandler.debug('Page Info:', page);
 
           // タイトルの取得
           const title = Object.values(page.properties).find((prop) =>
@@ -424,29 +395,15 @@ export const databasePageCommand = new Command()
               `ページ「${title}」を削除しますか？`,
             );
             if (!answer) {
-              logger.info('削除をキャンセルしました');
+              outputHandler.info('削除をキャンセルしました');
               Deno.exit(0);
             }
           }
 
           // ページの削除
           await client.removePage(pageId);
-
-          // エイリアスの削除（もし存在する場合）
-          const alias = Object.entries(aliasManager.getAll()).find((
-            [_, value],
-          ) => value === databasePageIdOrUrl)?.[0];
-          if (alias) {
-            aliasManager.remove(alias);
-            await aliasManager.update();
-            logger.info(`エイリアス "${alias}" を削除しました`);
-          }
-
-          logger.success(`ページ「${title}」を削除しました`);
-        } catch (error) {
-          logger.error('ページの削除に失敗しました:', error);
-          Deno.exit(1);
-        }
+          outputHandler.success(`ページ「${title}」を削除しました`);
+        }, 'ページの削除に失敗しました');
       }),
   )
   .command(
@@ -456,36 +413,33 @@ export const databasePageCommand = new Command()
       .arguments('<database_id_or_url:string> <json_file:string>')
       .option('-d, --debug', 'デバッグモード')
       .action(async (options, databaseIdOrUrl, jsonFile) => {
-        const config = await Config.load();
-        const client = new NotionClient(config);
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        const errorHandler = new ErrorHandler();
+        const pageResolver = await PageResolver.create();
 
-        try {
+        await errorHandler.withErrorHandling(async () => {
+          const config = await Config.load();
+          const client = new NotionClient(config);
+
           // データベースIDの解決
-          const aliasManager = await AliasManager.load();
-          const resolvedId = aliasManager.get(databaseIdOrUrl) ||
-            databaseIdOrUrl;
-          const databaseId = NotionPageId.fromString(resolvedId)?.toShortId();
-
-          if (!databaseId) {
-            throw new Error('無効なデータベースIDまたはURLです');
-          }
+          const databaseId = await pageResolver.resolvePageId(databaseIdOrUrl);
+          outputHandler.debug('Database ID:', databaseId);
 
           // JSONファイルの読み込み
           const jsonContent = await Deno.readTextFile(jsonFile);
           const data = JSON.parse(jsonContent);
+          outputHandler.debug('JSON Data:', data);
 
           // データベース情報の取得（プロパティの検証用）
           const database = await client.getDatabase(databaseId);
-          logger.debug('Database Info:', database);
+          outputHandler.debug('Database Info:', database);
 
           // プロパティの変換
           const propertyValues: CreatePageParameters['properties'] = {};
           for (const [key, value] of Object.entries(data.properties)) {
             const propType = database.properties[key]?.type;
             if (!propType) {
-              logger.info(
+              outputHandler.info(
                 `警告: プロパティ "${key}" はデータベースに存在しません`,
               );
               continue;
@@ -497,29 +451,27 @@ export const databasePageCommand = new Command()
               const errorMessage = error instanceof Error
                 ? error.message
                 : String(error);
-              logger.error(
+              throw new Error(
                 `プロパティ "${key}" の変換に失敗しました: ${errorMessage}`,
               );
-              throw error;
             }
           }
 
           // ページの作成
-          logger.debug('Property Values:', propertyValues);
+          outputHandler.debug('Property Values:', propertyValues);
           const response = await client.createDatabasePage(
             databaseId,
             propertyValues,
           );
-          logger.debug('API Response:', response);
+          outputHandler.debug('API Response:', response);
 
-          logger.success('データベースページを作成しました:');
-          console.log(`ID: ${response.id}`);
-          console.log(
+          outputHandler.success('データベースページを作成しました:');
+          const output = [
+            `ID: ${response.id}`,
             `URL: https://notion.so/${response.id.replace(/-/g, '')}`,
-          );
-        } catch (error) {
-          logger.error('データベースページの作成に失敗しました:', error);
-          Deno.exit(1);
-        }
+          ].join('\n');
+
+          await outputHandler.handleOutput(output);
+        }, 'データベースページの作成に失敗しました');
       }),
   );

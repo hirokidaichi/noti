@@ -1,9 +1,10 @@
 import { Command } from '@cliffy/command';
-import { AliasManager } from '../lib/config/aliases.ts';
-import { getPageUri } from '../lib/notion/page-uri.ts';
 import { NotionClient } from '../lib/notion/client.ts';
 import { Config } from '../lib/config/config.ts';
 import { APIErrorCode, APIResponseError } from '@notionhq/client';
+import { OutputHandler } from '../lib/command-utils/output-handler.ts';
+import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
+import { PageResolver } from '../lib/command-utils/page-resolver.ts';
 
 async function openBrowser(url: string) {
   let command: string[];
@@ -73,26 +74,26 @@ export const openCommand = new Command()
   .name('open')
   .description('Notionのページまたはデータベースをブラウザで開きます')
   .arguments('<id_or_url_alias:string>')
-  .action(async (_options: unknown, idOrUrlAlias: string) => {
-    const config = await Config.load();
-    const client = new NotionClient(config);
-    const aliasManager = await AliasManager.load();
+  .option('-d, --debug', 'デバッグモード')
+  .action(async (options, idOrUrlAlias: string) => {
+    const outputHandler = new OutputHandler({ debug: options.debug });
+    const errorHandler = new ErrorHandler();
+    const pageResolver = await PageResolver.create();
 
-    const pageIdOrUrl = aliasManager.get(idOrUrlAlias) || idOrUrlAlias;
-    const pageUri = getPageUri(pageIdOrUrl);
+    await errorHandler.withErrorHandling(async () => {
+      const config = await Config.load();
+      const client = new NotionClient(config);
 
-    try {
-      // URLからIDを抽出
-      const id = pageUri.split('/').pop() || pageIdOrUrl;
-      const url = await getNotionUrl(client, id);
+      // ページIDの解決
+      const pageId = await pageResolver.resolvePageId(idOrUrlAlias);
+      outputHandler.debug('Resolved Page ID', pageId);
 
+      // URLの取得
+      const url = await getNotionUrl(client, pageId);
+      outputHandler.debug('Notion URL', url);
+
+      // ブラウザで開く
       await openBrowser(url);
-      console.log(`ブラウザで ${url} を開きました`);
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error(error.message);
-        Deno.exit(1);
-      }
-      throw error;
-    }
+      outputHandler.success(`ブラウザで ${url} を開きました`);
+    }, 'ページを開くことができませんでした');
   });

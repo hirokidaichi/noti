@@ -2,9 +2,10 @@
 import { Command } from '@cliffy/command';
 import { NotionClient } from '../lib/notion/client.ts';
 import { Config } from '../lib/config/config.ts';
-import { Logger } from '../lib/logger.ts';
 import { TTYController } from '../lib/tty-controller.ts';
 import { FuzzyFinder } from '../lib/fuzzy-finder.ts';
+import { OutputHandler } from '../lib/command-utils/output-handler.ts';
+import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
 
 // Notionのプロパティの型定義
 interface NotionProperty {
@@ -92,12 +93,13 @@ export const searchCommand = new Command()
     json?: boolean;
     limit: number;
   }, query?: string) => {
-    const config = await Config.load();
-    const client = new NotionClient(config);
-    const logger = Logger.getInstance();
-    logger.setDebugMode(!!debug);
+    const outputHandler = new OutputHandler({ debug });
+    const errorHandler = new ErrorHandler();
 
-    try {
+    await errorHandler.withErrorHandling(async () => {
+      const config = await Config.load();
+      const client = new NotionClient(config);
+
       const searchParams: SearchParams = {
         query: query || '',
         page_size: limit,
@@ -111,16 +113,24 @@ export const searchCommand = new Command()
           : {}),
       };
 
+      outputHandler.debug('Search Parameters:', searchParams);
+
       const results = await client.search(searchParams);
+      outputHandler.debug('Raw Search Results:', results);
 
       if (results.results.length === 0) {
-        logger.info('検索結果が見つかりませんでした。');
+        outputHandler.info('検索結果が見つかりませんでした。');
         return;
       }
 
       if (json) {
         // JSON形式で出力
-        console.log(JSON.stringify(results.results, null, 2));
+        await outputHandler.handleOutput(
+          JSON.stringify(results.results, null, 2),
+          {
+            json: true,
+          },
+        );
         return;
       }
 
@@ -132,14 +142,10 @@ export const searchCommand = new Command()
       try {
         const selectedItem = await finder.find();
         if (selectedItem) {
-          //onsole.clear();
           console.log(selectedItem.id);
         }
       } finally {
         //tty.cleanupSync();
       }
-    } catch (error) {
-      logger.error('検索中にエラーが発生しました', error);
-      Deno.exit(1);
-    }
+    }, '検索中にエラーが発生しました');
   });
