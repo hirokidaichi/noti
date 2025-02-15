@@ -18,13 +18,16 @@ import { serve } from '@std/http/server.ts';
 ## 2. エイリアスインポートの強制
 
 全てのファイルで相対パスによるインポートを禁止し、エイリアス表記を使用する必要があります。
+また、エイリアスインポート時は`mod.ts`を指定する必要はありません。
 
 ```typescript
 // ❌ 悪い例
 import { someFunction } from '../../lib/utils.ts';
+import { ensureDir } from '@std/fs/mod.ts';
 
 // ✅ 良い例
 import { someFunction } from '@lib/utils.ts';
+import { ensureDir } from '@std/fs';
 ```
 
 ## 3. コード品質チェック
