@@ -1,0 +1,131 @@
+# コーディングルール
+
+## 1. Deno外部モジュールの管理
+
+外部モジュールを追加する際は、必ず`deno add`コマンドを使用し、`deno.json`に記録する必要があります。
+
+```typescript
+// ❌ 悪い例
+import { serve } from 'https://deno.land/std@0.140.0/http/server.ts';
+
+// ✅ 良い例
+// 1. まず以下のコマンドを実行
+// deno add https://deno.land/std@0.140.0/http/server.ts
+// 2. その後、以下のようにインポート
+import { serve } from '@std/http/server.ts';
+```
+
+## 2. エイリアスインポートの強制
+
+全てのファイルで相対パスによるインポートを禁止し、エイリアス表記を使用する必要があります。
+
+```typescript
+// ❌ 悪い例
+import { someFunction } from '../../lib/utils.ts';
+
+// ✅ 良い例
+import { someFunction } from '@lib/utils.ts';
+```
+
+## 3. コード品質チェック
+
+全てのコードは以下のチェックをパスする必要があります：
+
+- `deno lint` - コードスタイルとリンターチェック
+- `deno check` - 型チェック
+- `deno test` - ユニットテストの実行
+
+これらのチェックは pre-commit フックとして設定されており、コミット前に自動的に実行されます。
+
+### テストファイルの規則
+
+- テストファイルは、テスト対象のファイルと同じディレクトリに配置します
+- テストファイルの命名は `{元のファイル名}.test.ts` の形式に統一します
+- `__tests__`ディレクトリは使用しません
+
+```typescript
+// ❌ 悪い例
+src/__tests__/hoge.test.ts
+src/tests/hoge.test.ts
+src/hoge.spec.ts
+
+// ✅ 良い例
+src/hoge.test.ts
+src/lib/utils.test.ts
+```
+
+## 4. ロギングとデバッグ
+
+プロジェクト全体で統一されたロギング方法を使用します。直接`console.log`を使用せず、`Logger`クラスを使用してください。
+
+### ロガーの使用方法
+
+```typescript
+// ❌ 悪い例
+console.log('デバッグ情報:', data);
+console.error('エラーが発生しました');
+
+// ✅ 良い例
+const logger = Logger.getInstance();
+logger.debug('デバッグ情報', data);
+logger.error('エラーが発生しました', error);
+```
+
+### ログレベル
+
+- `debug`: デバッグ情報（デバッグモード時のみ出力）
+- `error`: エラー情報（赤色で表示）
+- `info`: 一般的な情報（青色で表示）
+- `success`: 成功情報（緑色で表示）
+
+### デバッグモード
+
+- デバッグ出力は`-d`または`--debug`オプションが指定された場合のみ有効
+- デバッグ情報は`stderr`に出力
+- オブジェクトデータは自動的に整形して出力
+
+## 5. プロジェクト構成
+
+プロジェクトは以下のディレクトリ構造に従って整理します：
+
+```
+src/
+├── commands/      # CLIコマンドの実装
+├── lib/          # 共通ライブラリ
+│   ├── config/   # 設定関連の実装
+│   ├── converter/ # 変換処理の実装
+│   ├── notion/   # Notion API関連の実装
+│   └── *.ts      # ユーティリティ実装
+└── main.ts       # エントリーポイント
+```
+
+### ディレクトリの役割
+
+- `commands/`: 各CLIコマンドの実装
+  - 各コマンドは独立したファイルとして実装
+  - コマンドのオプション、引数、ヘルプの定義を含む
+
+- `lib/`: 共通ライブラリとユーティリティ
+  - `config/`: 設定ファイルの管理、エイリアス設定
+  - `converter/`: Markdown⇔Notionブロックの変換
+  - `notion/`: Notion APIクライアントと関連機能
+  - ルートの`*.ts`: 汎用ユーティリティ（ロガー、通知など）
+
+### ファイル命名規則
+
+- 実装ファイル: `kebab-case.ts`
+- テストファイル: `kebab-case.test.ts`
+- 型定義ファイル: `types.ts`
+- インデックスファイル: `mod.ts`
+
+### pre-commit フック
+
+以下のコマンドが自動的に実行されます：
+
+```bash
+deno lint
+deno check
+deno test
+```
+
+全てのチェックがパスした場合のみ、コミットが許可されます。 
