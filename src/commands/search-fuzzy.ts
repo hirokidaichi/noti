@@ -155,9 +155,7 @@ export const searchFuzzyCommand = new Command()
 
       if (selectedItem) {
         console.clear();
-        //setTimeout(() => {
-          console.log(selectedItem);
-        //}/, 0);
+        console.log(selectedItem);
       }
     } catch (error) {
       logger.error("エラーが発生しました", error);
