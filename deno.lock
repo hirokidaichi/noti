@@ -15,6 +15,7 @@
     "jsr:@std/assert@~0.220.1": "0.220.1",
     "jsr:@std/assert@~1.0.6": "1.0.11",
     "jsr:@std/data-structures@~0.220.1": "0.220.1",
+    "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
     "jsr:@std/fmt@0.220.1": "0.220.1",
     "jsr:@std/fmt@~0.220.1": "0.220.1",
@@ -100,6 +101,9 @@
     },
     "@std/data-structures@0.220.1": {
       "integrity": "031c2982782f4284813c33f904d9e948fb369bc7f830d43fb05355c96a30435b"
+    },
+    "@std/dotenv@0.225.3": {
+      "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
     },
     "@std/encoding@1.0.7": {
       "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
@@ -915,6 +919,7 @@
       "jsr:@cliffy/table@1.0.0-rc.7",
       "jsr:@deno-library/termbox@0.2.1",
       "jsr:@std/assert@0.220.1",
+      "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/fmt@0.220.1",
       "jsr:@std/fs@0.220.1",
       "jsr:@std/html@^1.0.3",
