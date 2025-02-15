@@ -3,7 +3,7 @@
     "noti": "deno run -A src/main.ts",
     "dev": "deno run --watch -A src/main.ts",
     "compile": "deno compile -A src/main.ts -o noti",
-    "test": "deno test --allow-write --allow-read --allow-env"
+    "test": "deno test -A"
   },
   "fmt": {
     "options": {

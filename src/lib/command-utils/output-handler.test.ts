@@ -61,7 +61,7 @@ Deno.test('OutputHandler', async (t) => {
   await t.step('handleOutput - ファイルへの出力', async () => {
     setup();
     const testData = 'test data';
-    const tempFile = await Deno.makeTempFile();
+    const tempFile = './test-output.txt';
 
     try {
       await outputHandler.handleOutput(testData, { output: tempFile });
@@ -71,7 +71,11 @@ Deno.test('OutputHandler', async (t) => {
         args: [`出力を${tempFile}に保存しました`],
       });
     } finally {
-      await Deno.remove(tempFile);
+      try {
+        await Deno.remove(tempFile);
+      } catch {
+        // ファイルが存在しない場合は無視
+      }
     }
     cleanup();
   });

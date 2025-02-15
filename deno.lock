@@ -14,6 +14,7 @@
     "jsr:@std/assert@0.220.1": "0.220.1",
     "jsr:@std/assert@~0.220.1": "0.220.1",
     "jsr:@std/assert@~1.0.6": "1.0.11",
+    "jsr:@std/data-structures@~0.220.1": "0.220.1",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
     "jsr:@std/fmt@0.220.1": "0.220.1",
     "jsr:@std/fmt@~0.220.1": "0.220.1",
@@ -25,6 +26,7 @@
     "jsr:@std/path@0.220.1": "0.220.1",
     "jsr:@std/path@~0.220.1": "0.220.1",
     "jsr:@std/path@~1.0.6": "1.0.8",
+    "jsr:@std/testing@0.220.1": "0.220.1",
     "jsr:@std/testing@~0.220.1": "0.220.1",
     "jsr:@std/text@~1.0.7": "1.0.10",
     "npm:@notionhq/client@*": "2.2.15",
@@ -96,6 +98,9 @@
     "@std/assert@1.0.11": {
       "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1"
     },
+    "@std/data-structures@0.220.1": {
+      "integrity": "031c2982782f4284813c33f904d9e948fb369bc7f830d43fb05355c96a30435b"
+    },
     "@std/encoding@1.0.7": {
       "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
     },
@@ -130,7 +135,11 @@
     "@std/testing@0.220.1": {
       "integrity": "be77cc1df543f70217d450612637f9f6fcc6887f19fca89665ce08456ee1f290",
       "dependencies": [
-        "jsr:@std/assert@~0.220.1"
+        "jsr:@std/assert@~0.220.1",
+        "jsr:@std/data-structures",
+        "jsr:@std/fmt@~0.220.1",
+        "jsr:@std/fs@~0.220.1",
+        "jsr:@std/path@~0.220.1"
       ]
     },
     "@std/text@1.0.10": {
@@ -910,6 +919,7 @@
       "jsr:@std/fs@0.220.1",
       "jsr:@std/html@^1.0.3",
       "jsr:@std/path@0.220.1",
+      "jsr:@std/testing@0.220.1",
       "npm:@notionhq/client@2.2.14",
       "npm:marked@9.1.6"
     ]

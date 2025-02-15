@@ -12,6 +12,29 @@ class MockAliasManager implements Pick<AliasManager, 'get'> {
   get(name: string): string | undefined {
     return this.mockAliases[name];
   }
+
+  set(name: string, value: string): Promise<void> {
+    this.mockAliases[name] = value;
+    return Promise.resolve();
+  }
+
+  remove(name: string): Promise<void> {
+    delete this.mockAliases[name];
+    return Promise.resolve();
+  }
+
+  getAll(): Promise<Record<string, string>> {
+    return Promise.resolve({ ...this.mockAliases });
+  }
+
+  update(aliases: Record<string, string>): Promise<void> {
+    this.mockAliases = { ...aliases };
+    return Promise.resolve();
+  }
+
+  static load(): Promise<MockAliasManager> {
+    return Promise.resolve(new MockAliasManager());
+  }
 }
 
 // テストスイート
@@ -40,7 +63,7 @@ Deno.test('PageResolver', async (t) => {
     await assertRejects(
       () => resolver.resolvePageId('invalid-id'),
       Error,
-      '無効なページIDまたはURLです',
+      '無効なページIDまたはURLです。32文字の16進数である必要があります。',
     );
   });
 

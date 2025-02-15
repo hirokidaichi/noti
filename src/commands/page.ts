@@ -11,8 +11,11 @@ import { basename } from '@std/path';
 import { Logger } from '../lib/logger.ts';
 import { NotionPageId } from '../lib/notion/page-uri.ts';
 import { AliasManager } from '../lib/config/aliases.ts';
-
-
+import { PageResolver } from '../lib/command-utils/page-resolver.ts';
+import { OutputHandler } from '../lib/command-utils/output-handler.ts';
+import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
+import { PromptUtils } from '../lib/command-utils/prompt-utils.ts';
+import { PageObjectResponse } from '@notionhq/client/types.ts';
 
 // APIレスポンス型の定義
 interface NotionPageResponse {
@@ -71,41 +74,37 @@ export const pageCommand = new Command()
       )
       .option('-o, --output <file:string>', '出力ファイルパス')
       .action(async (options, pageIdOrUrl) => {
-        const config = await Config.load();
-        const client = new NotionClient(config);
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        const errorHandler = new ErrorHandler();
+        const pageResolver = await PageResolver.create();
 
-        try {
-          // URLまたはIDからページIDを抽出
-          const pageId = await extractPageId(pageIdOrUrl);
-          logger.debug('Extracted Page ID', pageId);
+        await errorHandler.withErrorHandling(async () => {
+          const config = await Config.load();
+          const client = new NotionClient(config);
+
+          // ページIDの解決
+          const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
+          outputHandler.debug('Extracted Page ID', pageId);
 
           // ページ情報の取得
-          const page = (await client.getPage(pageId)) as NotionPageResponse;
-
-          // ブロックの取得
+          const page = await client.getPage(pageId) as PageObjectResponse;
           const blocks = await client.getBlocks(pageId);
 
-          logger.debug('Raw Response', page);
-          logger.debug('Blocks', blocks);
+          outputHandler.debug('Raw Response', page);
+          outputHandler.debug('Blocks', blocks);
 
           // 出力フォーマットに応じて処理
           let output = '';
           if (options.format === 'markdown') {
             const converter = new BlockToMarkdown();
-
             const propertiesMarkdown = converter.convertProperties(
               page.properties,
             );
-            // 次にブロックを変換
             const blocksMarkdown = converter.convert(
               blocks.results as NotionBlocks[],
             );
-            // 両方を結合
             output = propertiesMarkdown + blocksMarkdown;
           } else {
-            // JSON形式で出力（ページ情報とブロック情報を含む）
             output = JSON.stringify(
               {
                 page,
@@ -116,17 +115,12 @@ export const pageCommand = new Command()
             );
           }
 
-          // 出力先の処理
-          if (options.output) {
-            await Deno.writeTextFile(options.output, output);
-            logger.success(`出力を ${options.output} に保存しました。`);
-          } else {
-            console.log(output);
-          }
-        } catch (error) {
-          logger.error('ページの取得に失敗しました', error);
-          Deno.exit(1);
-        }
+          // 出力処理
+          await outputHandler.handleOutput(output, {
+            output: options.output,
+            json: options.format === 'json',
+          });
+        }, 'ページの取得に失敗しました');
       }),
   )
   .command(
@@ -238,40 +232,39 @@ export const pageCommand = new Command()
       .option('-d, --debug', 'デバッグモード')
       .option('-f, --force', '確認なしで削除')
       .action(async (options, pageIdOrUrl) => {
-        const config = await Config.load();
-        const client = new NotionClient(config);
-        const logger = Logger.getInstance();
-        logger.setDebugMode(!!options.debug);
+        const outputHandler = new OutputHandler({ debug: options.debug });
+        const errorHandler = new ErrorHandler();
+        const pageResolver = await PageResolver.create();
 
-        try {
-          // ページIDの抽出
-          const pageId = await extractPageId(pageIdOrUrl);
-          logger.debug('Page ID', pageId);
+        await errorHandler.withErrorHandling(async () => {
+          const config = await Config.load();
+          const client = new NotionClient(config);
 
-          // ページ情報の取得（タイトルを表示するため）
-          const page = (await client.getPage(pageId)) as NotionPageResponse;
+          // ページIDの解決
+          const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
+          outputHandler.debug('Page ID', pageId);
+
+          // ページ情報の取得
+          const page = await client.getPage(pageId) as PageObjectResponse;
           const title = page.properties?.title?.title?.[0]?.plain_text ||
             'Untitled';
 
-          // 確認プロンプト（--forceオプションがない場合）
-          if (!options.force) {
-            const answer = await confirm(`ページ「${title}」を削除しますか？`);
+          // 確認プロンプト
+          const confirmed = await PromptUtils.confirm(
+            `ページ「${title}」を削除しますか？`,
+            { force: options.force },
+          );
 
-            if (!answer) {
-              console.error('削除をキャンセルしました。');
-              Deno.exit(0);
-            }
+          if (!confirmed) {
+            outputHandler.info('削除をキャンセルしました');
+            Deno.exit(0);
           }
 
           // ページの削除
           const result = await client.removePage(pageId);
-
-          logger.debug('API Response', result);
-          logger.success(`ページ「${title}」を削除しました。`);
-        } catch (error) {
-          logger.error('ページの削除に失敗しました', error);
-          Deno.exit(1);
-        }
+          outputHandler.debug('API Response', result);
+          outputHandler.success(`ページ「${title}」を削除しました。`);
+        }, 'ページの削除に失敗しました');
       }),
   )
   .command(
