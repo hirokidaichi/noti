@@ -2,20 +2,22 @@
 
 import { Command } from '@cliffy/command';
 import { searchCommand } from './commands/search.ts';
-import { searchFuzzyCommand } from './commands/search-fuzzy.ts';
 import { configureCommand } from './commands/configure.ts';
 import { pageCommand } from './commands/page.ts';
 import { aliasCommand } from './commands/alias.ts';
 import { userCommand } from './commands/user.ts';
+import { databaseCommand } from './commands/database.ts';
+import { openCommand } from './commands/open.ts';
 
 await new Command()
   .name('noti')
   .description('Notion CLI')
   .version('0.1.0')
   .command('search', searchCommand)
-  .command('search-fuzzy', searchFuzzyCommand)
   .command('configure', configureCommand)
   .command('page', pageCommand)
   .command('alias', aliasCommand)
   .command('user', userCommand)
+  .command('database', databaseCommand)
+  .command('open', openCommand)
   .parse(Deno.args);

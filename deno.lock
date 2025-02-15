@@ -20,6 +20,7 @@
     "jsr:@std/fmt@~1.0.2": "1.0.5",
     "jsr:@std/fs@0.220.1": "0.220.1",
     "jsr:@std/fs@~0.220.1": "0.220.1",
+    "jsr:@std/html@^1.0.3": "1.0.3",
     "jsr:@std/io@~0.224.9": "0.224.9",
     "jsr:@std/path@0.220.1": "0.220.1",
     "jsr:@std/path@~0.220.1": "0.220.1",
@@ -110,6 +111,9 @@
         "jsr:@std/assert@~0.220.1",
         "jsr:@std/path@~0.220.1"
       ]
+    },
+    "@std/html@1.0.3": {
+      "integrity": "7a0ac35e050431fb49d44e61c8b8aac1ebd55937e0dc9ec6409aa4bab39a7988"
     },
     "@std/io@0.224.9": {
       "integrity": "4414664b6926f665102e73c969cfda06d2c4c59bd5d0c603fd4f1b1c840d6ee3"
@@ -904,6 +908,7 @@
       "jsr:@std/assert@0.220.1",
       "jsr:@std/fmt@0.220.1",
       "jsr:@std/fs@0.220.1",
+      "jsr:@std/html@^1.0.3",
       "jsr:@std/path@0.220.1",
       "npm:@notionhq/client@2.2.14",
       "npm:marked@9.1.6"

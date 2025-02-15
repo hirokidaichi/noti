@@ -81,31 +81,7 @@ export const databaseCommand = new Command()
           if (selected) {
             const selectedDb = databases.find((db) => db.id === selected.id);
             if (selectedDb) {
-              console.log(`\n選択されたデータベース:`);
-              console.log(`- ${selectedDb.title}`);
-              console.log(`  ID: ${selectedDb.id}`);
-              console.log(`  URL: ${selectedDb.url}`);
-              console.log(
-                `  最終更新: ${
-                  new Date(selectedDb.last_edited_time).toLocaleString()
-                }\n`,
-              );
-
-              if (options.output) {
-                const output = [
-                  `# ${selectedDb.title}`,
-                  `- ID: ${selectedDb.id}`,
-                  `- URL: ${selectedDb.url}`,
-                  `- 最終更新: ${
-                    new Date(selectedDb.last_edited_time).toLocaleString()
-                  }`,
-                  '',
-                ].join('\n');
-                await Deno.writeTextFile(options.output, output);
-                logger.success(
-                  `選択されたデータベースを${options.output}に保存しました`,
-                );
-              }
+              console.log(selectedDb.id);
             }
           }
         } catch (error) {
