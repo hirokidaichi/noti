@@ -3,7 +3,7 @@
     "noti": "deno run -A src/main.ts",
     "dev": "deno run --watch -A src/main.ts",
     "compile": "deno compile -A src/main.ts -o noti",
-    "test": "deno test -A"
+    "test": "deno test --allow-write --allow-read --allow-env"
   },
   "fmt": {
     "options": {
@@ -26,6 +26,7 @@
     "@std/fs": "jsr:@std/fs@0.220.1",
     "@std/html": "jsr:@std/html@^1.0.3",
     "@std/path": "jsr:@std/path@0.220.1",
+    "@std/testing/mock": "jsr:@std/testing@0.220.1/mock",
     "marked": "npm:marked@9.1.6"
   }
 }

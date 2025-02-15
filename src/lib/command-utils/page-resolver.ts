@@ -12,24 +12,26 @@ export class PageResolver {
   resolvePageId(input: string): Promise<string> {
     const resolvedInput = this.aliasManager.get(input) || input;
     const pageId = NotionPageId.fromString(resolvedInput);
-
+    
     if (!pageId) {
-      throw new Error(
-        '無効なページIDまたはURLです。32文字の16進数である必要があります。',
+      return Promise.reject(
+        new Error('無効なページIDまたはURLです。32文字の16進数である必要があります。'),
       );
     }
-
+    
     return Promise.resolve(pageId.toShortId());
   }
 
   resolveDatabaseId(input: string): Promise<string> {
     const resolvedInput = this.aliasManager.get(input) || input;
     const databaseId = NotionPageId.fromString(resolvedInput);
-
+    
     if (!databaseId) {
-      throw new Error('無効なデータベースIDまたはURLです');
+      return Promise.reject(
+        new Error('無効なデータベースIDまたはURLです'),
+      );
     }
-
+    
     return Promise.resolve(databaseId.toShortId());
   }
 }
