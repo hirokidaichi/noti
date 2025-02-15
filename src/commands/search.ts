@@ -1,5 +1,5 @@
 /// <reference lib="deno.ns" />
-import { Command } from "../deps.ts";
+import { Command } from "@cliffy/command";
 import { NotionClient } from "../lib/notion/client.ts";
 import { Config } from "../lib/config/config.ts";
 import { Logger } from "../lib/logger.ts";
@@ -77,7 +77,7 @@ export const searchCommand = new Command()
   .arguments("[query:string]")
   .option("-d, --debug", "デバッグモード")
   .option("-p, --parent <id:string>", "親ページまたはデータベースのID")
-  .action(async ({ debug, parent }, query) => {
+  .action(async ({ debug, parent }: { debug?: boolean; parent?: string }, query?: string) => {
     const config = await Config.load();
     const client = new NotionClient(config);
     const logger = Logger.getInstance();

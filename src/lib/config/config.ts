@@ -1,12 +1,13 @@
-import { join, ensureDir } from "../../deps.ts";
+import { join } from '@std/path';
+import { ensureDir } from '@std/fs';
 
 export interface ConfigData {
   apiToken?: string;
 }
 
 export class Config {
-  private static CONFIG_DIR = join(Deno.env.get("HOME") || ".", ".noti");
-  private static CONFIG_FILE = join(Config.CONFIG_DIR, "config.json");
+  private static CONFIG_DIR = join(Deno.env.get('HOME') || '.', '.noti');
+  private static CONFIG_FILE = join(Config.CONFIG_DIR, 'config.json');
 
   constructor(private config: ConfigData = {}) {}
 
@@ -49,4 +50,4 @@ export class Config {
     await this.save(updated.config);
     return updated;
   }
-} 
+}

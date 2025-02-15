@@ -1,4 +1,4 @@
-import { Client } from "../../deps.ts";
+import { Client } from "npm:@notionhq/client@2.2.14";
 import { Config } from "../config/config.ts";
 
 // Notionのブロック型定義
@@ -117,6 +117,30 @@ export class NotionClient {
     return await this.client.pages.update({
       page_id: pageId,
       archived: true, // Notionではアーカイブが削除に相当
+    });
+  }
+
+  async deleteBlock(blockId: string) {
+    return await this.client.blocks.delete({
+      block_id: blockId,
+    });
+  }
+
+  async updatePage(pageId: string, properties: {
+    title: Array<{
+      text: {
+        content: string;
+      };
+    }>;
+  }) {
+    return await this.client.pages.update({
+      page_id: pageId,
+      properties: {
+        title: {
+          type: "title",
+          title: properties.title,
+        },
+      },
     });
   }
 } 

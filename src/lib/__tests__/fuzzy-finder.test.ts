@@ -1,4 +1,4 @@
-import { assertEquals } from "https://deno.land/std/testing/asserts.ts";
+import { assertEquals } from "@std/assert";
 import { FuzzySearchEngine, SearchState, SearchItem } from "../fuzzy-finder.ts";
 
 const createTestItems = (): SearchItem[] => [

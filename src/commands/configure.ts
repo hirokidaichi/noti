@@ -1,4 +1,5 @@
-import { Command, Input } from "../deps.ts";
+import { Command } from "jsr:@cliffy/command@^1.0.0-rc.7";
+import { Input } from "jsr:@cliffy/prompt@^1.0.0-rc.7";
 import { Config } from "../lib/config/config.ts";
 import { NotionClient } from "../lib/notion/client.ts";
 import { Logger } from "../lib/logger.ts";
