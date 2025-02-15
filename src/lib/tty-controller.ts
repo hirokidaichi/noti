@@ -1,16 +1,16 @@
 // ANSIエスケープシーケンス
 const ANSI = {
-  reset: "\x1b[0m",
-  reverse: "\x1b[7m",
-  clear: "\x1b[2J\x1b[H",  // 画面クリアとカーソルをホームポジションへ
-  clearToEnd: "\x1b[J",    // カーソル位置から画面末尾までクリア
-  clearLine: "\x1b[2K\r",  // 現在行をクリアして行頭へ
+  reset: '\x1b[0m',
+  reverse: '\x1b[7m',
+  clear: '\x1b[2J\x1b[H', // 画面クリアとカーソルをホームポジションへ
+  clearToEnd: '\x1b[J', // カーソル位置から画面末尾までクリア
+  clearLine: '\x1b[2K\r', // 現在行をクリアして行頭へ
   moveCursor: (y: number) => `\x1b[${y}H`,
-  moveToHome: "\x1b[H",    // カーソルをホームポジションへ
-  saveCursor: "\x1b[s",
-  restoreCursor: "\x1b[u",
-  hideCursor: "\x1b[?25l",
-  showCursor: "\x1b[?25h",
+  moveToHome: '\x1b[H', // カーソルをホームポジションへ
+  saveCursor: '\x1b[s',
+  restoreCursor: '\x1b[u',
+  hideCursor: '\x1b[?25l',
+  showCursor: '\x1b[?25h',
 };
 
 export class TTYController {
@@ -19,7 +19,7 @@ export class TTYController {
   private isRawMode = false;
 
   constructor() {
-    this.tty = Deno.openSync("/dev/tty", { read: true, write: true });
+    this.tty = Deno.openSync('/dev/tty', { read: true, write: true });
   }
 
   // TTYをrawモードに設定
@@ -66,10 +66,10 @@ export class TTYController {
   // エラーメッセージを表示
   async showError(message: string): Promise<void> {
     await this.clear();
-    await this.write("エラー: " + message + "\n");
-    await this.write("------------------------\n");
-    await this.write("Press any key to exit...\n");
-    
+    await this.write('エラー: ' + message + '\n');
+    await this.write('------------------------\n');
+    await this.write('Press any key to exit...\n');
+
     const buf = new Uint8Array(1024);
     await this.read(buf);
   }
@@ -77,11 +77,11 @@ export class TTYController {
   // デバッグ情報を表示
   async showDebug(data: unknown): Promise<void> {
     await this.clear();
-    await this.write("=== Debug Information ===\n");
-    await this.write(JSON.stringify(data, null, 2) + "\n");
-    await this.write("========================\n");
-    await this.write("Press any key to continue...\n");
-    
+    await this.write('=== Debug Information ===\n');
+    await this.write(JSON.stringify(data, null, 2) + '\n');
+    await this.write('========================\n');
+    await this.write('Press any key to continue...\n');
+
     const buf = new Uint8Array(1024);
     await this.read(buf);
   }
@@ -91,65 +91,65 @@ export class TTYController {
     items: Array<{ title: string; type: string }>,
     query: string,
     selectedIndex: number,
-    isInitial: boolean
   ): Promise<void> {
     await this.hideCursor();
     await this.clear();
 
     const { rows } = Deno.consoleSize();
-    const headerLines = 4; // ヘッダー行数を増やす（表示件数の行を含む）
+    const headerLines = 4;
     const footerLines = 2;
-    // 最大表示行数を画面の60%に制限（表示件数の行のスペースを確保）
     const maxResultLines = Math.min(
       Math.floor(rows * 0.6),
-      rows - headerLines - footerLines
+      rows - headerLines - footerLines,
     );
 
     // ヘッダー部分
-    await this.write("------------------------\n");
-    await this.write("↑/↓: 移動, Enter: 選択, Ctrl+C: 終了\n");
-    await this.write("------------------------\n");
+    await this.write('------------------------\n');
+    await this.write('↑/↓: 移動, Enter: 選択, Ctrl+C: 終了\n');
+    await this.write('------------------------\n');
 
     // 検索クエリと件数表示
-    await this.write("Query > " + query);
-    await this.write(ANSI.saveCursor); // カーソル位置を保存
-    await this.write("\n");
+    await this.write('Query > ' + query);
+    await this.write(ANSI.saveCursor);
+    await this.write('\n');
 
-    if (isInitial) {
-      await this.write("\n検索文字列を入力してください\n");
-    } else if (items.length === 0) {
-      await this.write("\n該当する結果がありません\n");
+    if (items.length === 0) {
+      await this.write('\n該当する結果がありません\n');
     } else {
-      let startIndex = Math.max(0, Math.min(
-        selectedIndex - Math.floor(maxResultLines / 2),
-        items.length - maxResultLines
-      ));
+      let startIndex = Math.max(
+        0,
+        Math.min(
+          selectedIndex - Math.floor(maxResultLines / 2),
+          items.length - maxResultLines,
+        ),
+      );
       startIndex = Math.max(0, startIndex);
 
       const displayItems = items.slice(startIndex, startIndex + maxResultLines);
-      
-      // 常に表示件数の情報を表示
+
       await this.write(
-        `表示: ${startIndex + 1}-${Math.min(startIndex + maxResultLines, items.length)} / 全${items.length}件\n\n`
+        `表示: ${startIndex + 1}-${
+          Math.min(startIndex + maxResultLines, items.length)
+        } / 全${items.length}件\n\n`,
       );
 
       for (let i = 0; i < displayItems.length; i++) {
         const item = displayItems[i];
         const actualIndex = startIndex + i;
-        const icon = item.type === "page" ? "📄" : "🗃️";
+        const icon = item.type === 'page' ? '📄' : '🗃️';
         const line = ` ${icon} ${item.title}`;
 
         if (actualIndex === selectedIndex) {
-          await this.write(ANSI.reverse + line + ANSI.reset + "\n");
+          await this.write(ANSI.reverse + line + ANSI.reset + '\n');
         } else {
-          await this.write(line + "\n");
+          await this.write(line + '\n');
         }
       }
     }
 
-    await this.write("\n------------------------\n");
-    await this.write(ANSI.restoreCursor); // 保存したカーソル位置に戻る
-    await this.showCursor(); // カーソルを表示
+    await this.write('\n------------------------\n');
+    await this.write(ANSI.restoreCursor);
+    await this.showCursor();
   }
 
   // 同期的なクリーンアップ
@@ -168,4 +168,4 @@ export class TTYController {
 }
 
 // ANSIエスケープシーケンスをエクスポート
-export { ANSI }; 
+export { ANSI };
