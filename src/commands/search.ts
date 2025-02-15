@@ -22,6 +22,7 @@ interface NotionItem {
   };
   properties: Record<string, NotionProperty>;
   title?: { plain_text: string }[];
+  url?: string;
 }
 
 interface SearchResult {
@@ -72,7 +73,7 @@ function formatNotionResults(results: NotionItem[]): SearchResult[] {
       id: item.id,
       title,
       type: item.object,
-      url: (item as any).url,
+      url: item.url,
     };
   });
 }
@@ -117,10 +118,6 @@ export const searchCommand = new Command()
         return;
       }
 
-      if (debug) {
-        logger.debug('First Result', results.results[0]);
-      }
-
       if (json) {
         // JSON形式で出力
         console.log(JSON.stringify(results.results, null, 2));
@@ -139,7 +136,7 @@ export const searchCommand = new Command()
           console.log(selectedItem.id);
         }
       } finally {
-        tty.cleanupSync();
+        //tty.cleanupSync();
       }
     } catch (error) {
       logger.error('検索中にエラーが発生しました', error);
