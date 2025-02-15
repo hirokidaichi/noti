@@ -8,6 +8,39 @@ interface BlockObject {
   [key: string]: unknown;
 }
 
+// Notionのコメント型定義
+interface NotionComment {
+  id: string;
+  parent: {
+    type: 'page_id' | 'block_id';
+    page_id?: string;
+    block_id?: string;
+  };
+  discussion_id: string;
+  created_time: string;
+  last_edited_time: string;
+  created_by: {
+    object: 'user';
+    id: string;
+  };
+  rich_text: Array<{
+    type: 'text';
+    text: {
+      content: string;
+      link: null | {
+        url: string;
+      };
+    };
+  }>;
+}
+
+interface CommentListResponse {
+  object: 'list';
+  results: NotionComment[];
+  next_cursor: string | null;
+  has_more: boolean;
+}
+
 // Notionのプロパティ型定義
 interface PageProperties {
   [key: string]: {
@@ -161,6 +194,26 @@ export class NotionClient {
   async getUser(userId: string) {
     return await this.client.users.retrieve({
       user_id: userId,
+    });
+  }
+
+  async getComments(pageId: string) {
+    return await this.client.comments.list({
+      block_id: pageId,
+    });
+  }
+
+  async createComment(pageId: string, text: string) {
+    return await this.client.comments.create({
+      parent: {
+        page_id: pageId,
+      },
+      rich_text: [{
+        type: 'text',
+        text: {
+          content: text,
+        },
+      }],
     });
   }
 }

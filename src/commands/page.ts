@@ -69,7 +69,7 @@ export const pageCommand = new Command()
         '-f, --format <format:string>',
         '出力フォーマット (json/markdown)',
         {
-          default: 'json',
+          default: 'markdown',
         },
       )
       .option('-o, --output <file:string>', '出力ファイルパス')
@@ -359,4 +359,86 @@ export const pageCommand = new Command()
           Deno.exit(1);
         }
       }),
+  )
+  .command(
+    'comment',
+    new Command()
+      .description('コメント操作')
+      .command(
+        'get',
+        new Command()
+          .description('ページのコメントを取得')
+          .arguments('<page_id_or_url:string>')
+          .option('-d, --debug', 'デバッグモード')
+          .option(
+            '-f, --format <format:string>',
+            '出力フォーマット (json/markdown)',
+            {
+              default: 'markdown',
+            },
+          )
+          .action(async (options, pageIdOrUrl) => {
+            const config = await Config.load();
+            const client = new NotionClient(config);
+            const logger = Logger.getInstance();
+            logger.setDebugMode(!!options.debug);
+
+            try {
+              // ページIDの抽出
+              const pageId = await extractPageId(pageIdOrUrl);
+              logger.debug('Page ID', pageId);
+
+              // コメントの取得
+              const response = await client.getComments(pageId);
+              logger.debug('API Response', response);
+
+              // 出力フォーマットに応じて処理
+              if (options.format === 'markdown') {
+                const comments = response.results.map((comment) => {
+                  const content = comment.rich_text.map((rt) =>
+                    'plain_text' in rt ? rt.plain_text : ''
+                  ).join('');
+                  const date = new Date(comment.created_time).toLocaleString(
+                    'ja-JP',
+                  );
+                  return `- ${content} (${date})`;
+                }).join('\n');
+                console.log(comments || 'コメントはありません。');
+              } else {
+                console.log(JSON.stringify(response, null, 2));
+              }
+            } catch (error) {
+              logger.error('コメントの取得に失敗しました', error);
+              Deno.exit(1);
+            }
+          }),
+      )
+      .command(
+        'add',
+        new Command()
+          .description('ページにコメントを追加')
+          .arguments('<page_id_or_url:string> <comment:string>')
+          .option('-d, --debug', 'デバッグモード')
+          .action(async (options, pageIdOrUrl, comment) => {
+            const config = await Config.load();
+            const client = new NotionClient(config);
+            const logger = Logger.getInstance();
+            logger.setDebugMode(!!options.debug);
+
+            try {
+              // ページIDの抽出
+              const pageId = await extractPageId(pageIdOrUrl);
+              logger.debug('Page ID', pageId);
+
+              // コメントの追加
+              const response = await client.createComment(pageId, comment);
+              logger.debug('API Response', response);
+
+              logger.success('コメントを追加しました。');
+            } catch (error) {
+              logger.error('コメントの追加に失敗しました', error);
+              Deno.exit(1);
+            }
+          }),
+      ),
   );
