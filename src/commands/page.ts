@@ -12,10 +12,7 @@ import { Logger } from '../lib/logger.ts';
 import { NotionPageId } from '../lib/notion/page-uri.ts';
 import { AliasManager } from '../lib/config/aliases.ts';
 
-// エラー型の定義
-interface NotionError {
-  message: string;
-}
+
 
 // APIレスポンス型の定義
 interface NotionPageResponse {

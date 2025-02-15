@@ -1,5 +1,6 @@
 import { Client, LogLevel } from '@notionhq/client';
 import { Config } from '../config/config.ts';
+import type { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints.js';
 
 // Notionのブロック型定義
 interface BlockObject {
@@ -48,6 +49,22 @@ interface PageProperties {
     [key: string]: unknown;
   };
 }
+
+// Notionのプロパティ値の型定義
+type PropertyValueType =
+  | { title: Array<{ text: { content: string } }> }
+  | { rich_text: Array<{ text: { content: string } }> }
+  | { number: number }
+  | { select: { name: string } }
+  | { multi_select: Array<{ name: string }> }
+  | { date: { start: string; end?: string } }
+  | { checkbox: boolean }
+  | { url: string }
+  | { email: string }
+  | { phone_number: string }
+  | { formula: { expression: string } }
+  | { relation: Array<{ id: string }> }
+  | { status: { name: string } };
 
 export class NotionClient {
   private client: Client;
@@ -234,6 +251,26 @@ export class NotionClient {
         direction: 'descending',
         timestamp: 'last_edited_time',
       },
+    });
+  }
+
+  async createDatabasePage(
+    databaseId: string,
+    properties: CreatePageParameters['properties'],
+  ) {
+    return await this.client.pages.create({
+      parent: { database_id: databaseId },
+      properties,
+    });
+  }
+
+  async updateDatabasePage(
+    pageId: string,
+    properties: CreatePageParameters['properties'],
+  ) {
+    return await this.client.pages.update({
+      page_id: pageId,
+      properties,
     });
   }
 }
