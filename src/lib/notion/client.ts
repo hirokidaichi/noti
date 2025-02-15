@@ -1,9 +1,9 @@
-import { Client } from "npm:@notionhq/client@2.2.14";
-import { Config } from "../config/config.ts";
+import { Client } from 'npm:@notionhq/client@2.2.14';
+import { Config } from '../config/config.ts';
 
 // Notionのブロック型定義
 interface BlockObject {
-  object: "block";
+  object: 'block';
   type: string;
   [key: string]: unknown;
 }
@@ -21,7 +21,9 @@ export class NotionClient {
 
   constructor(config: Config) {
     if (!config.token) {
-      throw new Error("Notion APIトークンが設定されていません。`noti configure` を実行してください。");
+      throw new Error(
+        'Notion APIトークンが設定されていません。`noti configure` を実行してください。',
+      );
     }
     this.client = new Client({
       auth: config.token,
@@ -33,7 +35,7 @@ export class NotionClient {
       await this.client.users.me({});
       return true;
     } catch (_error) {
-      throw new Error("APIトークンが無効です。");
+      throw new Error('APIトークンが無効です。');
     }
   }
 
@@ -41,8 +43,8 @@ export class NotionClient {
     query: string;
     page_size?: number;
     filter?: {
-      property: "object";
-      value: "page" | "database";
+      property: 'object';
+      value: 'page' | 'database';
     };
   }) {
     return await this.client.search({
@@ -50,8 +52,8 @@ export class NotionClient {
       page_size: params.page_size,
       filter: params.filter,
       sort: {
-        direction: "descending",
-        timestamp: "last_edited_time",
+        direction: 'descending',
+        timestamp: 'last_edited_time',
       },
     });
   }
@@ -72,7 +74,9 @@ export class NotionClient {
   async appendBlocks(pageId: string, blocks: unknown[]) {
     return await this.client.blocks.children.append({
       block_id: pageId,
-      children: blocks as Parameters<typeof this.client.blocks.children.append>[0]["children"],
+      children: blocks as Parameters<
+        typeof this.client.blocks.children.append
+      >[0]['children'],
     });
   }
 
@@ -87,29 +91,35 @@ export class NotionClient {
     title?: string;
     blocks?: unknown[];
   }) {
-    const parentType = params.parentId.includes("-") ? "database_id" : "page_id";
+    const parentType = params.parentId.includes('-')
+      ? 'database_id'
+      : 'page_id';
     const properties = {
-      ...(parentType === "database_id" ? {
-        Name: {
-          type: "title",
-          title: params.title ? [{ text: { content: params.title } }] : [],
-        },
-      } : {
-        title: {
-          type: "title",
-          title: params.title ? [{ text: { content: params.title } }] : [],
-        },
-      }),
-    } as Parameters<typeof this.client.pages.create>[0]["properties"];
+      ...(parentType === 'database_id'
+        ? {
+          Name: {
+            type: 'title',
+            title: params.title ? [{ text: { content: params.title } }] : [],
+          },
+        }
+        : {
+          title: {
+            type: 'title',
+            title: params.title ? [{ text: { content: params.title } }] : [],
+          },
+        }),
+    } as Parameters<typeof this.client.pages.create>[0]['properties'];
 
-    const parent = parentType === "database_id"
+    const parent = parentType === 'database_id'
       ? { database_id: params.parentId }
       : { page_id: params.parentId };
 
     return await this.client.pages.create({
       parent,
       properties,
-      children: params.blocks as Parameters<typeof this.client.pages.create>[0]["children"],
+      children: params.blocks as Parameters<
+        typeof this.client.pages.create
+      >[0]['children'],
     });
   }
 
@@ -137,10 +147,20 @@ export class NotionClient {
       page_id: pageId,
       properties: {
         title: {
-          type: "title",
+          type: 'title',
           title: properties.title,
         },
       },
     });
   }
-} 
+
+  async listUsers() {
+    return await this.client.users.list({});
+  }
+
+  async getUser(userId: string) {
+    return await this.client.users.retrieve({
+      user_id: userId,
+    });
+  }
+}

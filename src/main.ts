@@ -6,6 +6,7 @@ import { searchFuzzyCommand } from './commands/search-fuzzy.ts';
 import { configureCommand } from './commands/configure.ts';
 import { pageCommand } from './commands/page.ts';
 import { aliasCommand } from './commands/alias.ts';
+import { userCommand } from './commands/user.ts';
 
 await new Command()
   .name('noti')
@@ -16,4 +17,5 @@ await new Command()
   .command('configure', configureCommand)
   .command('page', pageCommand)
   .command('alias', aliasCommand)
+  .command('user', userCommand)
   .parse(Deno.args);
