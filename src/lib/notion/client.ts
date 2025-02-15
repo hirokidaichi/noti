@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client';
+import { Client, LogLevel } from '@notionhq/client';
 import { Config } from '../config/config.ts';
 
 // Notionのブロック型定義
@@ -58,8 +58,10 @@ export class NotionClient {
         'Notion APIトークンが設定されていません。`noti configure` を実行してください。',
       );
     }
+
     this.client = new Client({
       auth: config.token,
+      logLevel: LogLevel.ERROR, // ログレベルをERRORに設定
     });
   }
 
@@ -214,6 +216,24 @@ export class NotionClient {
           content: text,
         },
       }],
+    });
+  }
+
+  async listDatabases(params: {
+    page_size?: number;
+    start_cursor?: string;
+  } = {}) {
+    return await this.client.search({
+      filter: {
+        property: 'object',
+        value: 'database',
+      },
+      page_size: params.page_size,
+      start_cursor: params.start_cursor,
+      sort: {
+        direction: 'descending',
+        timestamp: 'last_edited_time',
+      },
     });
   }
 }
