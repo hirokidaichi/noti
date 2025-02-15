@@ -26,19 +26,29 @@ export class NotionPageId {
    * ハイフンなしの32文字ShortIDを抽出する
    */
   private static extractNotionId(input: string): NotionShortId | null {
+    // URLからクエリパラメータを除去
+    const urlWithoutQuery = input.split('?')[0];
+
+    // NotionのURLパターン（末尾のスラッシュやクエリパラメータを考慮）
+    const urlPattern = /notion\.so\/(?:[^/]*-)?([0-9a-fA-F]{32})\b/;
+    const urlMatch = urlWithoutQuery.match(urlPattern);
+    if (urlMatch) {
+      return urlMatch[1].toLowerCase();
+    }
+
     // 32文字の16進数またはUUID形式のみを抽出する正規表現
     const shortIdPattern = /\b[0-9a-fA-F]{32}\b/;
     const longIdPattern =
       /\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b/;
 
     // まずLongID形式をチェック
-    const longMatch = input.match(longIdPattern);
+    const longMatch = urlWithoutQuery.match(longIdPattern);
     if (longMatch) {
       return longMatch[0].replace(/-/g, '').toLowerCase();
     }
 
     // 次にShortID形式をチェック
-    const shortMatch = input.match(shortIdPattern);
+    const shortMatch = urlWithoutQuery.match(shortIdPattern);
     if (shortMatch) {
       return shortMatch[0].toLowerCase();
     }

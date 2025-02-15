@@ -9,6 +9,10 @@ Deno.test('NotionPageId', async (t) => {
     'https://www.notion.so/OpenAI-AI-o3-GPT-5-GPT-5-o3-ChatGPT-API-Plus-Pro--19875fb73edc813a9a5bc09f2616cd60';
   const VALID_NOTION_URL_WITH_LONG_ID =
     'https://www.notion.so/OpenAI-AI-o3-GPT-5-GPT-5-o3-ChatGPT-API-Plus-Pro--19875fb7-3edc-813a-9a5b-c09f2616cd60';
+  const VALID_NOTION_URL_WITH_QUERY =
+    'https://www.notion.so/19875fb73edc813a9a5bc09f2616cd60?v=18a75fb73edc80aeab63000c8710e500';
+  const VALID_NOTION_URL_WITH_QUERY_AND_TITLE =
+    'https://www.notion.so/My-Page-19875fb73edc813a9a5bc09f2616cd60?v=18a75fb73edc80aeab63000c8710e500';
 
   await t.step('fromString - 有効なShortIDからインスタンスを生成', () => {
     const pageId = NotionPageId.fromString(VALID_SHORT_ID);
@@ -36,6 +40,26 @@ Deno.test('NotionPageId', async (t) => {
     assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
     assertEquals(pageId?.toLongId(), VALID_LONG_ID);
   });
+
+  await t.step(
+    'fromString - クエリパラメータ付きURLからインスタンスを生成',
+    () => {
+      const pageId = NotionPageId.fromString(VALID_NOTION_URL_WITH_QUERY);
+      assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
+      assertEquals(pageId?.toLongId(), VALID_LONG_ID);
+    },
+  );
+
+  await t.step(
+    'fromString - タイトルとクエリパラメータ付きURLからインスタンスを生成',
+    () => {
+      const pageId = NotionPageId.fromString(
+        VALID_NOTION_URL_WITH_QUERY_AND_TITLE,
+      );
+      assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
+      assertEquals(pageId?.toLongId(), VALID_LONG_ID);
+    },
+  );
 
   await t.step('fromString - 無効な入力に対してnullを返す', () => {
     // 無効なケース
