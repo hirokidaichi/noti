@@ -7,78 +7,110 @@ export interface SearchItem {
   url?: string;
 }
 
-export class FuzzyFinder {
-  private items: SearchItem[];
-  private currentResults: SearchItem[];
-  private searchText: string;
-  private selectedIndex: number;
-  private tty: TTYController;
-  private cleanup: (() => void) | null = null;
-
-  constructor(items: SearchItem[], tty: TTYController) {
-    this.items = items;
-    this.currentResults = items;
-    this.searchText = "";
-    this.selectedIndex = 0;
-    this.tty = tty;
-  }
-
-  // 標準入力から行を読み込む
-  private async readStdinLines(): Promise<string[]> {
-    const lines: string[] = [];
-    const buffer = new Uint8Array(1024);
-    
-    // 標準入力がパイプされているかチェック
-    if (!Deno.stdin.isTerminal) {
-      while (true) {
-        const n = await Deno.stdin.read(buffer);
-        if (n === null) break;
-        
-        const chunk = new TextDecoder().decode(buffer.subarray(0, n));
-        const chunkLines = chunk.split("\n");
-        
-        // 最後の行が不完全な場合に備えて処理
-        if (lines.length > 0 && !chunk.includes("\n")) {
-          lines[lines.length - 1] += chunkLines[0];
-        } else {
-          lines.push(...chunkLines);
-        }
-      }
-    }
-    
-    // 空行を除去して返す
-    return lines.filter(line => line.trim().length > 0);
-  }
-
-  // ファジー検索の実装
-  private fuzzySearch(query: string): SearchItem[] {
+// 検索ロジックを独立したクラスとして分離
+export class FuzzySearchEngine {
+  constructor(private items: SearchItem[]) {}
+  
+  search(query: string): SearchItem[] {
     if (!query) return this.items;
-    
     const lowerQuery = query.toLowerCase();
     return this.items.filter(item => 
       item.title.toLowerCase().includes(lowerQuery)
     );
   }
+}
+
+// 検索の状態管理を独立したクラスとして分離
+export class SearchState {
+  constructor(
+    public searchText: string = "",
+    public selectedIndex: number = 0,
+    public currentResults: SearchItem[] = [],
+    private items: SearchItem[] = []
+  ) {}
+
+  updateSearch(searchEngine: FuzzySearchEngine, newSearchText: string): void {
+    this.searchText = newSearchText;
+    this.currentResults = searchEngine.search(newSearchText);
+    this.selectedIndex = 0;
+  }
+
+  moveSelection(direction: 'up' | 'down'): void {
+    if (this.currentResults.length === 0) return;
+    
+    if (direction === 'up') {
+      this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+    } else {
+      this.selectedIndex = Math.min(this.currentResults.length - 1, this.selectedIndex + 1);
+    }
+  }
+
+  getSelectedItem(): SearchItem | null {
+    return this.selectedIndex >= 0 && this.currentResults.length > 0
+      ? this.currentResults[this.selectedIndex]
+      : null;
+  }
+}
+
+export class FuzzyFinder {
+  private searchEngine: FuzzySearchEngine;
+  private state: SearchState;
+  private tty: TTYController;
+  private cleanup: (() => void) | null = null;
+
+  constructor(items: SearchItem[], tty: TTYController) {
+    this.searchEngine = new FuzzySearchEngine(items);
+    this.state = new SearchState("", 0, items, items);
+    this.tty = tty;
+  }
+
+  // 標準入力から行を読み込む
+  private async readStdinLines(): Promise<string[]> {
+    // ガード節: 標準入力がターミナルの場合は早期リターン
+    if (Deno.stdin.isTerminal()) {
+      return [];
+    }
+
+    const lines: string[] = [];
+    const buffer = new Uint8Array(1024);
+    
+    while (true) {
+      const n = await Deno.stdin.read(buffer);
+      if (n === null) break;
+      
+      const chunk = new TextDecoder().decode(buffer.subarray(0, n));
+      const chunkLines = chunk.split("\n");
+      
+      this.appendChunkLines(lines, chunkLines, chunk.includes("\n"));
+    }
+    
+    return this.filterEmptyLines(lines);
+  }
+
+  // チャンク行の追加処理を分離
+  private appendChunkLines(lines: string[], chunkLines: string[], hasNewline: boolean): void {
+    if (lines.length > 0 && !hasNewline) {
+      lines[lines.length - 1] += chunkLines[0];
+      return;
+    }
+    lines.push(...chunkLines);
+  }
+
+  // 空行のフィルタリングを分離
+  private filterEmptyLines(lines: string[]): string[] {
+    return lines.filter(line => line.trim().length > 0);
+  }
 
   // シグナルハンドラの設定
   private setupSignalHandlers(): void {
-    this.cleanup = () => {
-      try {
-        // 同期的にクリーンアップを実行
-        this.tty.cleanupSync();
-      } catch (_) {
-        // エラーは無視
-      }
-      Deno.exit(0);
-    };
-
-    // SIGINTハンドラを設定
-    Deno.addSignalListener("SIGINT", this.cleanup);
+    const cleanupHandler = () => this.performCleanup();
+    this.cleanup = cleanupHandler;
+    Deno.addSignalListener("SIGINT", cleanupHandler);
   }
 
   // シグナルハンドラの解除
   private cleanupSignalHandlers(): void {
-    if (this.cleanup) {
+    if (this.cleanup !== null) {
       try {
         Deno.removeSignalListener("SIGINT", this.cleanup);
       } catch (_) {
@@ -88,46 +120,80 @@ export class FuzzyFinder {
     }
   }
 
+  // クリーンアップ処理を分離
+  private performCleanup(): void {
+    try {
+      this.tty.cleanupSync();
+    } catch (_) {
+      // エラーは無視
+    }
+    Deno.exit(0);
+  }
+
   // キー入力の処理
   private handleInput(input: string): { needsUpdate: boolean; shouldBreak: boolean } {
-    let needsUpdate = false;
-    let shouldBreak = false;
-
-    if (input === "\x03") { // Ctrl+C
-      this.selectedIndex = -1;
-      if (this.cleanup) {
-        this.cleanup();
-      }
-      shouldBreak = true;
-    } else if (input === "\r") { // Enter
-      if (this.currentResults.length > 0) {
-        shouldBreak = true;
-      }
-    } else if (input === "\x7f") { // Backspace
-      if (this.searchText.length > 0) {
-        this.searchText = this.searchText.slice(0, -1);
-        this.currentResults = this.fuzzySearch(this.searchText);
-        this.selectedIndex = 0;
-        needsUpdate = true;
-      }
-    } else if (input === "\x1b[A") { // Up arrow
-      if (this.currentResults.length > 0) {
-        this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-        needsUpdate = true;
-      }
-    } else if (input === "\x1b[B") { // Down arrow
-      if (this.currentResults.length > 0) {
-        this.selectedIndex = Math.min(this.currentResults.length - 1, this.selectedIndex + 1);
-        needsUpdate = true;
-      }
-    } else if (!input.startsWith("\x1b")) { // 通常の文字入力
-      this.searchText += input;
-      this.currentResults = this.fuzzySearch(this.searchText);
-      this.selectedIndex = 0;
-      needsUpdate = true;
+    // 特殊キーの処理を分離
+    if (this.isSpecialKey(input)) {
+      return this.handleSpecialKey(input);
     }
 
-    return { needsUpdate, shouldBreak };
+    // 通常の文字入力
+    if (!input.startsWith("\x1b")) {
+      return this.handleNormalInput(input);
+    }
+
+    return { needsUpdate: false, shouldBreak: false };
+  }
+
+  // 特殊キーの判定
+  private isSpecialKey(input: string): boolean {
+    return ["\x03", "\r", "\x7f", "\x1b[A", "\x1b[B"].includes(input);
+  }
+
+  // 特殊キーの処理
+  private handleSpecialKey(input: string): { needsUpdate: boolean; shouldBreak: boolean } {
+    switch (input) {
+      case "\x03": { // Ctrl+C
+        this.state = new SearchState("", -1, this.state.currentResults);
+        this.performCleanup();
+        return { needsUpdate: false, shouldBreak: true };
+      }
+
+      case "\r": { // Enter
+        return { 
+          needsUpdate: false, 
+          shouldBreak: this.state.currentResults.length > 0 
+        };
+      }
+
+      case "\x7f": { // Backspace
+        if (this.state.searchText.length === 0) {
+          return { needsUpdate: false, shouldBreak: false };
+        }
+        const newSearchText = this.state.searchText.slice(0, -1);
+        this.state.updateSearch(this.searchEngine, newSearchText);
+        return { needsUpdate: true, shouldBreak: false };
+      }
+
+      case "\x1b[A": { // Up arrow
+        this.state.moveSelection('up');
+        return { needsUpdate: true, shouldBreak: false };
+      }
+
+      case "\x1b[B": { // Down arrow
+        this.state.moveSelection('down');
+        return { needsUpdate: true, shouldBreak: false };
+      }
+    }
+
+    return { needsUpdate: false, shouldBreak: false };
+  }
+
+  // 通常の文字入力の処理
+  private handleNormalInput(input: string): { needsUpdate: boolean; shouldBreak: false } {
+    const newSearchText = this.state.searchText + input;
+    this.state.updateSearch(this.searchEngine, newSearchText);
+    return { needsUpdate: true, shouldBreak: false };
   }
 
   // 検索の実行
@@ -138,18 +204,18 @@ export class FuzzyFinder {
       const stdinLines = await this.readStdinLines();
       if (stdinLines.length > 0) {
         // 標準入力から読み込んだ行を検索結果として使用
-        this.items = stdinLines.map(line => ({
+        const items = stdinLines.map(line => ({
           id: line,
           title: line,
           type: "page",
           url: line
         }));
-        this.currentResults = this.items;
+        this.searchEngine = new FuzzySearchEngine(items);
+        this.state = new SearchState("", 0, items, items);
       }
 
-      this.searchText = initialQuery;
       if (initialQuery) {
-        this.currentResults = this.fuzzySearch(initialQuery);
+        this.state.updateSearch(this.searchEngine, initialQuery);
       }
 
       try {
@@ -157,7 +223,12 @@ export class FuzzyFinder {
         this.tty.enableRawMode();
         
         // 初期表示
-        await this.tty.displayResults(this.currentResults, this.searchText, this.selectedIndex, !initialQuery);
+        await this.tty.displayResults(
+          this.state.currentResults,
+          this.state.searchText,
+          this.state.selectedIndex,
+          !initialQuery
+        );
         
         const buf = new Uint8Array(1024);
         while (true) {
@@ -172,7 +243,12 @@ export class FuzzyFinder {
           }
 
           if (needsUpdate) {
-            await this.tty.displayResults(this.currentResults, this.searchText, this.selectedIndex, false);
+            await this.tty.displayResults(
+              this.state.currentResults,
+              this.state.searchText,
+              this.state.selectedIndex,
+              false
+            );
           }
         }
       } finally {
@@ -180,9 +256,7 @@ export class FuzzyFinder {
         this.tty.cleanupSync();
       }
 
-      return this.selectedIndex >= 0 && this.currentResults.length > 0
-        ? this.currentResults[this.selectedIndex]
-        : null;
+      return this.state.getSelectedItem();
     } finally {
       this.cleanupSignalHandlers();
     }
