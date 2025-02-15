@@ -1,14 +1,14 @@
-import { marked, Token, Tokens } from "https://esm.sh/marked@9.1.6";
+import { marked, Token, Tokens } from 'npm:marked@9.1.6';
 import {
-  NotionBlocks,
-  NotionRichText,
   ConversionResult,
+  NotionBlocks,
+  NotionBulletedListItemBlock,
   NotionHeading1Block,
   NotionHeading2Block,
   NotionHeading3Block,
-  NotionBulletedListItemBlock,
   NotionNumberedListItemBlock,
-} from "./types.ts";
+  NotionRichText,
+} from './types.ts';
 
 export class MarkdownToBlocks {
   private tokens: Token[] = [];
@@ -45,17 +45,17 @@ export class MarkdownToBlocks {
    */
   private convertToken(token: Token): NotionBlocks | null {
     switch (token.type) {
-      case "paragraph":
+      case 'paragraph':
         return this.convertParagraph(token as Tokens.Paragraph);
-      case "heading":
+      case 'heading':
         return this.convertHeading(token as Tokens.Heading);
-      case "list":
+      case 'list':
         return this.convertList(token as Tokens.List);
-      case "code":
+      case 'code':
         return this.convertCode(token as Tokens.Code);
-      case "blockquote":
+      case 'blockquote':
         return this.convertBlockquote(token as Tokens.Blockquote);
-      case "image":
+      case 'image':
         return this.convertImage(token as Tokens.Image);
       default:
         return null;
@@ -67,7 +67,7 @@ export class MarkdownToBlocks {
    */
   private createRichText(content: string): NotionRichText[] {
     return [{
-      type: "text",
+      type: 'text',
       text: {
         content,
       },
@@ -78,8 +78,8 @@ export class MarkdownToBlocks {
         strikethrough: false,
         underline: false,
         code: false,
-        color: "default"
-      }
+        color: 'default',
+      },
     }];
   }
 
@@ -88,7 +88,7 @@ export class MarkdownToBlocks {
    */
   private convertParagraph(token: Tokens.Paragraph): NotionBlocks {
     return {
-      type: "paragraph",
+      type: 'paragraph',
       paragraph: {
         rich_text: this.createRichText(token.text),
       },
@@ -102,21 +102,21 @@ export class MarkdownToBlocks {
     switch (token.depth) {
       case 1:
         return {
-          type: "heading_1",
+          type: 'heading_1',
           heading_1: {
             rich_text: this.createRichText(token.text),
           },
         } as NotionHeading1Block;
       case 2:
         return {
-          type: "heading_2",
+          type: 'heading_2',
           heading_2: {
             rich_text: this.createRichText(token.text),
           },
         } as NotionHeading2Block;
       case 3:
         return {
-          type: "heading_3",
+          type: 'heading_3',
           heading_3: {
             rich_text: this.createRichText(token.text),
           },
@@ -124,7 +124,7 @@ export class MarkdownToBlocks {
       default:
         // 見出しレベル4以上は段落として扱う
         return {
-          type: "paragraph",
+          type: 'paragraph',
           paragraph: {
             rich_text: this.createRichText(token.text),
           },
@@ -139,14 +139,14 @@ export class MarkdownToBlocks {
     const firstItem = token.items[0];
     if (token.ordered) {
       return {
-        type: "numbered_list_item",
+        type: 'numbered_list_item',
         numbered_list_item: {
           rich_text: this.createRichText(firstItem.text),
         },
       } as NotionNumberedListItemBlock;
     } else {
       return {
-        type: "bulleted_list_item",
+        type: 'bulleted_list_item',
         bulleted_list_item: {
           rich_text: this.createRichText(firstItem.text),
         },
@@ -159,10 +159,10 @@ export class MarkdownToBlocks {
    */
   private convertCode(token: Tokens.Code): NotionBlocks {
     return {
-      type: "code",
+      type: 'code',
       code: {
         rich_text: this.createRichText(token.text),
-        language: token.lang || "plain text",
+        language: token.lang || 'plain text',
       },
     };
   }
@@ -172,7 +172,7 @@ export class MarkdownToBlocks {
    */
   private convertBlockquote(token: Tokens.Blockquote): NotionBlocks {
     return {
-      type: "quote",
+      type: 'quote',
       quote: {
         rich_text: this.createRichText(token.text),
       },
@@ -184,9 +184,9 @@ export class MarkdownToBlocks {
    */
   private convertImage(token: Tokens.Image): NotionBlocks {
     return {
-      type: "image",
+      type: 'image',
       image: {
-        type: "external",
+        type: 'external',
         external: {
           url: token.href,
         },
