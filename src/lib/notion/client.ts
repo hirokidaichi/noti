@@ -1,4 +1,4 @@
-import { Client } from 'npm:@notionhq/client@2.2.14';
+import { Client } from '@notionhq/client';
 import { Config } from '../config/config.ts';
 
 // Notionのブロック型定義

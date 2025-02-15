@@ -30,6 +30,7 @@
     "npm:@notionhq/client@2.2.14": "2.2.14",
     "npm:@types/node@*": "22.5.4",
     "npm:cliffy@*": "2.5.1",
+    "npm:commander@11.1.0": "11.1.0",
     "npm:marked@9.1.6": "9.1.6"
   },
   "jsr": {
@@ -192,6 +193,9 @@
       "dependencies": [
         "delayed-stream"
       ]
+    },
+    "commander@11.1.0": {
+      "integrity": "sha512-yPVavfyCcRhmorC7rWlkHn15b4wDVgVmBA7kV4QVBsF7kv/9TKJAbAXVTxvTnwP8HHKjRCJDClKbciiYS7p0DQ=="
     },
     "defaults@1.0.4": {
       "integrity": "sha512-eFuaLoy/Rxalv2kr+lqMlUnrDWV+3j4pljOIJgLIhI058IQfWJ7vXhyEIHu+HtC738klGALYxOKDO0bQP3tg8A==",
