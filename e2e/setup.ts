@@ -1,8 +1,9 @@
 import { loadTestConfig, TestConfig } from './test-config.ts';
 import { Config } from '../src/lib/config/config.ts';
 import { NotionClient } from '../src/lib/notion/client.ts';
+import { runCommand } from './test-utils.ts';
 
-export { loadTestConfig, type TestConfig };
+export { loadTestConfig, runCommand, type TestConfig };
 
 export async function setupTestConfig(): Promise<Config> {
   const testConfig = await loadTestConfig();

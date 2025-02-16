@@ -11,7 +11,7 @@ import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
 interface ListOptions {
   limit: number;
   output?: string;
-  json?: boolean;
+  format?: string;
   debug?: boolean;
 }
 
@@ -25,7 +25,13 @@ export const databaseCommand = new Command()
       .description('データベースの一覧を表示')
       .option('-n, --limit <number:number>', '取得する件数', { default: 50 })
       .option('-o, --output <path:string>', '出力ファイルパス')
-      .option('-j, --json', 'JSON形式で出力')
+      .option(
+        '-f, --format <format:string>',
+        '出力フォーマット (json/markdown)',
+        {
+          default: 'markdown',
+        },
+      )
       .option('-d, --debug', 'デバッグモード')
       .action(async (options: ListOptions) => {
         const outputHandler = new OutputHandler({ debug: options.debug });
@@ -56,7 +62,7 @@ export const databaseCommand = new Command()
             };
           });
 
-          if (options.json) {
+          if (options.format === 'json') {
             // JSON形式での出力
             await outputHandler.handleOutput(
               JSON.stringify(databases, null, 2),

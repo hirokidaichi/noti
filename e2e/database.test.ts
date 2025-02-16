@@ -6,7 +6,7 @@ Deno.test('Database E2E Tests', async (t) => {
   await setupConfigure();
 
   await t.step('should list databases', async () => {
-    const { success, output } = await runCommand('database list --json');
+    const { success, output } = await runCommand('database list --format json');
     assertEquals(success, true);
     assertExists(output);
   });
