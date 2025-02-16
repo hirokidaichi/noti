@@ -5,6 +5,7 @@ import type {
   CreateDatabaseResponse,
   CreatePageParameters,
   DatabaseObjectResponse,
+  PageObjectResponse,
   QueryDatabaseParameters,
   QueryDatabaseResponse,
   UpdateDatabaseParameters,
@@ -338,7 +339,7 @@ export class NotionClient {
     with_content?: boolean;
   }) {
     // 1. 元のページの情報を取得
-    const sourcePage = await this.getPage(params.page_id);
+    const sourcePage = await this.getPage(params.page_id) as PageObjectResponse;
     const sourceBlocks = params.with_content
       ? await this.getBlocks(params.page_id)
       : null;
@@ -346,73 +347,19 @@ export class NotionClient {
     // 2. ターゲットデータベースのスキーマを取得
     const targetDatabase = await this.client.databases.retrieve({
       database_id: params.target_database_id,
-    });
+    }) as DatabaseObjectResponse;
 
     // 3. プロパティの互換性を確保
-    const compatibleProperties: Record<string, any> = {};
-    const sourceProperties = (sourcePage as any).properties;
-
-    // ターゲットデータベースのプロパティスキーマに基づいてプロパティを設定
-    for (const [key, schema] of Object.entries(targetDatabase.properties)) {
-      if (sourceProperties[key]) {
-        const sourceValue = sourceProperties[key];
-        if (sourceValue.type === schema.type) {
-          // プロパティタイプに応じた変換処理
-          switch (sourceValue.type) {
-            case 'title':
-            case 'rich_text':
-            case 'number':
-            case 'checkbox':
-            case 'url':
-            case 'email':
-            case 'phone_number':
-            case 'date':
-              // 直接コピー可能なプロパティ
-              compatibleProperties[key] = sourceValue;
-              break;
-            case 'select':
-              // セレクトオプションの互換性チェック
-              if (
-                (schema as any).select.options.some((option: any) =>
-                  option.name === sourceValue.select.name
-                )
-              ) {
-                compatibleProperties[key] = sourceValue;
-              }
-              break;
-            case 'multi_select':
-              // マルチセレクトオプションの互換性チェック
-              const validOptions = sourceValue.multi_select.filter((
-                option: any,
-              ) =>
-                (schema as any).multi_select.options.some((schemaOption: any) =>
-                  schemaOption.name === option.name
-                )
-              );
-              if (validOptions.length > 0) {
-                compatibleProperties[key] = {
-                  type: 'multi_select',
-                  multi_select: validOptions,
-                };
-              }
-              break;
-            case 'relation':
-              // リレーションの互換性チェック
-              if (
-                (schema as any).relation.database_id ===
-                  sourceValue.relation.database_id
-              ) {
-                compatibleProperties[key] = sourceValue;
-              }
-              break;
-              // その他のプロパティタイプは必要に応じて追加
-          }
-        }
-      }
-    }
+    const compatibleProperties = this.getCompatibleProperties(
+      sourcePage,
+      targetDatabase,
+    ) as CreatePageParameters['properties'];
 
     // タイトルプロパティが必須なので、存在しない場合は追加
-    if (!compatibleProperties.Name || !compatibleProperties.Name.title) {
+    const titleProperty = compatibleProperties.Name as {
+      title?: Array<{ type: 'text'; text: { content: string } }>;
+    };
+    if (!titleProperty?.title) {
       compatibleProperties.Name = {
         type: 'title',
         title: [{ type: 'text', text: { content: 'Untitled' } }],
@@ -473,5 +420,68 @@ export class NotionClient {
       page_size: params.page_size,
       start_cursor: params.start_cursor,
     });
+  }
+
+  private getCompatibleProperties(
+    sourcePage: PageObjectResponse,
+    targetDatabase: DatabaseObjectResponse,
+  ): Record<string, unknown> {
+    // deno-lint-ignore no-explicit-any
+    const compatibleProperties: Record<string, any> = {};
+    // deno-lint-ignore no-explicit-any
+    const sourceProperties = (sourcePage as any).properties;
+
+    for (const [key, sourceValue] of Object.entries(sourceProperties)) {
+      const schema = targetDatabase.properties[key];
+      if (!schema) continue;
+
+      // deno-lint-ignore no-explicit-any
+      const typedSourceValue = sourceValue as any;
+      switch (typedSourceValue.type) {
+        case 'select':
+          if (
+            typedSourceValue.select &&
+            // deno-lint-ignore no-explicit-any
+            (schema as any).select.options.some((option: any) =>
+              option.name === typedSourceValue.select.name
+            )
+          ) {
+            compatibleProperties[key] = typedSourceValue;
+          }
+          break;
+
+        case 'multi_select': {
+          // マルチセレクトオプションの互換性チェック
+          const validOptions = typedSourceValue.multi_select.filter(
+            // deno-lint-ignore no-explicit-any
+            (option: any) =>
+              // deno-lint-ignore no-explicit-any
+              (schema as any).multi_select.options.some(
+                // deno-lint-ignore no-explicit-any
+                (schemaOption: any) => schemaOption.name === option.name,
+              ),
+          );
+          if (validOptions.length > 0) {
+            compatibleProperties[key] = {
+              type: 'multi_select',
+              multi_select: validOptions,
+            };
+          }
+          break;
+        }
+
+        case 'relation':
+          if (
+            // deno-lint-ignore no-explicit-any
+            (schema as any).relation.database_id ===
+              typedSourceValue.relation[0]?.database_id
+          ) {
+            compatibleProperties[key] = typedSourceValue;
+          }
+          break;
+      }
+    }
+
+    return compatibleProperties;
   }
 }
