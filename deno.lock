@@ -3,32 +3,26 @@
   "specifiers": {
     "jsr:@cliffy/ansi@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/command@1.0.0-rc.7": "1.0.0-rc.7",
-    "jsr:@cliffy/command@^1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/flags@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/internal@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/keycode@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/prompt@1.0.0-rc.7": "1.0.0-rc.7",
-    "jsr:@cliffy/prompt@^1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/table@1.0.0-rc.7": "1.0.0-rc.7",
-    "jsr:@deno-library/termbox@0.2.1": "0.2.1",
     "jsr:@std/assert@0.220.1": "0.220.1",
     "jsr:@std/assert@~0.220.1": "0.220.1",
     "jsr:@std/assert@~1.0.6": "1.0.11",
-    "jsr:@std/data-structures@~0.220.1": "0.220.1",
-    "jsr:@std/dotenv@~0.225.3": "0.225.3",
+    "jsr:@std/encoding@^1.0.7": "1.0.7",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
     "jsr:@std/fmt@0.220.1": "0.220.1",
     "jsr:@std/fmt@~0.220.1": "0.220.1",
     "jsr:@std/fmt@~1.0.2": "1.0.5",
     "jsr:@std/fs@0.220.1": "0.220.1",
     "jsr:@std/fs@~0.220.1": "0.220.1",
-    "jsr:@std/html@^1.0.3": "1.0.3",
     "jsr:@std/io@~0.224.9": "0.224.9",
     "jsr:@std/path@0.220.1": "0.220.1",
     "jsr:@std/path@~0.220.1": "0.220.1",
     "jsr:@std/path@~1.0.6": "1.0.8",
     "jsr:@std/testing@0.220.1": "0.220.1",
-    "jsr:@std/testing@~0.220.1": "0.220.1",
     "jsr:@std/text@~1.0.7": "1.0.10",
     "npm:@notionhq/client@*": "2.2.15",
     "npm:@notionhq/client@2.2.14": "2.2.14",
@@ -42,7 +36,7 @@
       "integrity": "f71c921cce224c13d322e5cedba4f38e8f7354c7d855c9cb22729362a53f25aa",
       "dependencies": [
         "jsr:@cliffy/internal",
-        "jsr:@std/encoding",
+        "jsr:@std/encoding@~1.0.5",
         "jsr:@std/io"
       ]
     },
@@ -87,9 +81,6 @@
         "jsr:@std/fmt@~1.0.2"
       ]
     },
-    "@deno-library/termbox@0.2.1": {
-      "integrity": "ad34d69a33ff34a15b9ca05c4734ae8058a27f115fded30ac6ee619740704413"
-    },
     "@std/assert@0.220.1": {
       "integrity": "88710d54f3afdd7a5761e7805abba1f56cd14e4b212feffeb3e73a9f77482425",
       "dependencies": [
@@ -98,12 +89,6 @@
     },
     "@std/assert@1.0.11": {
       "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1"
-    },
-    "@std/data-structures@0.220.1": {
-      "integrity": "031c2982782f4284813c33f904d9e948fb369bc7f830d43fb05355c96a30435b"
-    },
-    "@std/dotenv@0.225.3": {
-      "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
     },
     "@std/encoding@1.0.7": {
       "integrity": "f631247c1698fef289f2de9e2a33d571e46133b38d042905e3eac3715030a82d"
@@ -121,9 +106,6 @@
         "jsr:@std/path@~0.220.1"
       ]
     },
-    "@std/html@1.0.3": {
-      "integrity": "7a0ac35e050431fb49d44e61c8b8aac1ebd55937e0dc9ec6409aa4bab39a7988"
-    },
     "@std/io@0.224.9": {
       "integrity": "4414664b6926f665102e73c969cfda06d2c4c59bd5d0c603fd4f1b1c840d6ee3"
     },
@@ -139,11 +121,7 @@
     "@std/testing@0.220.1": {
       "integrity": "be77cc1df543f70217d450612637f9f6fcc6887f19fca89665ce08456ee1f290",
       "dependencies": [
-        "jsr:@std/assert@~0.220.1",
-        "jsr:@std/data-structures",
-        "jsr:@std/fmt@~0.220.1",
-        "jsr:@std/fs@~0.220.1",
-        "jsr:@std/path@~0.220.1"
+        "jsr:@std/assert@~0.220.1"
       ]
     },
     "@std/text@1.0.10": {
@@ -911,22 +889,5 @@
     "https://esm.sh/yoga-wasm-web@0.3.3/denonext/auto.mjs": "e2d6668f38d8ee9e1180cd86265a4820f0a3fa39c325e44db0162fcce7d1da53",
     "https://esm.sh/yoga-wasm-web@0.3.3/denonext/dist/wrapAsm-f766f97f.mjs": "d05bfe075aca55d08d2ecc56f20aa8ced8638b752cdc122e19c46ff8bfb6762e",
     "https://esm.sh/yoga-wasm-web@0.3.3/denonext/yoga-wasm-web.mjs": "ea6c532b665d65831e9355b641a49153a565a88216f59e91e61dceef13881b2f"
-  },
-  "workspace": {
-    "dependencies": [
-      "jsr:@cliffy/command@1.0.0-rc.7",
-      "jsr:@cliffy/prompt@1.0.0-rc.7",
-      "jsr:@cliffy/table@1.0.0-rc.7",
-      "jsr:@deno-library/termbox@0.2.1",
-      "jsr:@std/assert@0.220.1",
-      "jsr:@std/dotenv@~0.225.3",
-      "jsr:@std/fmt@0.220.1",
-      "jsr:@std/fs@0.220.1",
-      "jsr:@std/html@^1.0.3",
-      "jsr:@std/path@0.220.1",
-      "jsr:@std/testing@0.220.1",
-      "npm:@notionhq/client@2.2.14",
-      "npm:marked@9.1.6"
-    ]
   }
 }

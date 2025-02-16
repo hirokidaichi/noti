@@ -19,33 +19,24 @@ NotionのページやデータベースをCLIから操作するためのツー�
 git clone https://github.com/hirokidaichi/noti.git
 cd noti
 
+# 依存関係のインストール
+deno add @std/assert
+deno add @std/path
+deno add @std/testing
+deno add @std/dotenv
+deno add @std/fs
+deno add @cliffy/command
+deno add @cliffy/prompt
+deno add @notionhq/client
+
 # インストール
 deno task install
 ```
 
-### 方法2: バイナリをダウンロードしてインストール
+### 方法2: URLから直接インストール
 
 ```bash
-# バイナリのダウンロード（プラットフォームに応じて選択）
-## macOS
-curl -L -o noti https://github.com/hirokidaichi/noti/releases/latest/download/noti-macos
-chmod +x noti
-sudo mv noti /usr/local/bin/
-
-## Linux
-curl -L -o noti https://github.com/hirokidaichi/noti/releases/latest/download/noti-linux
-chmod +x noti
-sudo mv noti /usr/local/bin/
-
-## Windows
-# PowerShellで実行
-Invoke-WebRequest -Uri https://github.com/hirokidaichi/noti/releases/latest/download/noti-windows.exe -OutFile noti.exe
-```
-
-### 方法3: URLから直接インストール
-
-```bash
-deno install --global -A -f -n noti https://raw.githubusercontent.com/hirokidaichi/noti/main/src/main.ts
+deno install --global -A -f -n noti --import-map https://raw.githubusercontent.com/hirokidaichi/noti/main/deno.json https://raw.githubusercontent.com/hirokidaichi/noti/main/src/main.ts
 ```
 
 ### 開発者向け
