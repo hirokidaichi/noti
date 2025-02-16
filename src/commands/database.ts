@@ -4,7 +4,7 @@ import { NotionClient } from '../lib/notion/client.ts';
 import { Config } from '../lib/config/config.ts';
 import { FuzzyFinder, SearchItem } from '../lib/fuzzy-finder.ts';
 import { TTYController } from '../lib/tty-controller.ts';
-import { databasePageCommand } from './database-page.ts';
+import { databasePageCommand } from './database/page.ts';
 import { OutputHandler } from '../lib/command-utils/output-handler.ts';
 import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
 

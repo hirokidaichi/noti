@@ -4,6 +4,30 @@ import { OutputHandler } from '../lib/command-utils/output-handler.ts';
 import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
 import { PageResolver } from '../lib/command-utils/page-resolver.ts';
 
+// エイリアス追加の共通処理を関数として抽出
+const addAlias = async (
+  options: { debug?: boolean },
+  alias: string,
+  pageIdOrUrl: string,
+) => {
+  const outputHandler = new OutputHandler({ debug: options.debug ?? false });
+  const errorHandler = new ErrorHandler();
+  const pageResolver = await PageResolver.create();
+
+  await errorHandler.withErrorHandling(async () => {
+    // ページIDの解決
+    const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
+    outputHandler.debug('Page ID:', pageId);
+
+    // エイリアスの追加
+    const aliasManager = await AliasManager.load();
+    aliasManager.set(alias, pageId);
+    await aliasManager.update();
+
+    outputHandler.success(`エイリアス "${alias}" を追加しました`);
+  }, 'エイリアスの追加に失敗しました');
+};
+
 export const aliasCommand = new Command()
   .name('alias')
   .description('エイリアス管理')
@@ -13,24 +37,15 @@ export const aliasCommand = new Command()
       .description('エイリアスを追加')
       .arguments('<alias:string> <page_id_or_url:string>')
       .option('-d, --debug', 'デバッグモード')
-      .action(async (options, alias: string, pageIdOrUrl: string) => {
-        const outputHandler = new OutputHandler({ debug: options.debug });
-        const errorHandler = new ErrorHandler();
-        const pageResolver = await PageResolver.create();
-
-        await errorHandler.withErrorHandling(async () => {
-          // ページIDの解決
-          const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
-          outputHandler.debug('Page ID:', pageId);
-
-          // エイリアスの追加
-          const aliasManager = await AliasManager.load();
-          aliasManager.set(alias, pageId);
-          await aliasManager.update();
-
-          outputHandler.success(`エイリアス "${alias}" を追加しました`);
-        }, 'エイリアスの追加に失敗しました');
-      }),
+      .action(addAlias),
+  )
+  .command(
+    'set',
+    new Command()
+      .description('エイリアスを追加（addコマンドと同じ）')
+      .arguments('<alias:string> <page_id_or_url:string>')
+      .option('-d, --debug', 'デバッグモード')
+      .action(addAlias),
   )
   .command(
     'remove',

@@ -1,21 +1,23 @@
-import { load } from '@std/dotenv';
-import { assert } from '@std/assert';
+import { loadTestConfig, TestConfig } from './test-config.ts';
+import { Config } from '../src/lib/config/config.ts';
+import { NotionClient } from '../src/lib/notion/client.ts';
 
-export interface TestConfig {
-  NOTION_TOKEN: string;
-  NOTION_ROOT_ID: string;
+export { loadTestConfig, type TestConfig };
+
+export async function setupTestConfig(): Promise<Config> {
+  const testConfig = await loadTestConfig();
+  return new Config({
+    apiToken: testConfig.NOTION_TOKEN,
+  });
 }
 
-export async function loadTestConfig(): Promise<TestConfig> {
-  const env = await load({ export: true });
-
-  assert(env.NOTION_TOKEN, 'NOTION_TOKEN is required in .env file');
-  assert(env.NOTION_ROOT_ID, 'NOTION_ROOT_ID is required in .env file');
-
-  return {
-    NOTION_TOKEN: env.NOTION_TOKEN,
-    NOTION_ROOT_ID: env.NOTION_ROOT_ID,
-  };
+export async function setupTestDatabase(client: NotionClient): Promise<string> {
+  // テスト用データベースの作成
+  const response = await client.createPage({
+    parentId: (await loadTestConfig()).NOTION_ROOT_ID,
+    title: 'Test Database ' + new Date().toISOString(),
+  });
+  return response.id;
 }
 
 export async function setupConfigure(): Promise<void> {
@@ -40,21 +42,4 @@ export async function setupConfigure(): Promise<void> {
     const error = new TextDecoder().decode(stderr);
     throw new Error(`Configure failed: ${error}`);
   }
-}
-
-export async function runCommand(
-  command: string,
-): Promise<{ success: boolean; output: string }> {
-  const process = new Deno.Command('deno', {
-    args: ['task', 'noti', ...command.split(' ')],
-    stdout: 'piped',
-    stderr: 'piped',
-  });
-
-  const { success, stdout, stderr } = await process.output();
-  const stdoutText = new TextDecoder().decode(stdout);
-  const stderrText = new TextDecoder().decode(stderr);
-  const output = stdoutText + stderrText;
-
-  return { success, output };
 }
