@@ -1,0 +1,22 @@
+{
+  "imports": {
+    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
+    "@cliffy/prompt": "jsr:@cliffy/prompt@1.0.0-rc.7",
+    "@cliffy/table": "jsr:@cliffy/table@1.0.0-rc.7",
+    "@deno-library/termbox": "jsr:@deno-library/termbox@0.2.1",
+    "@notionhq/client": "npm:@notionhq/client@2.2.14",
+    "@notionhq/client/build/src/api-endpoints.js": "npm:@notionhq/client@2.2.14/build/src/api-endpoints.js",
+    "@notionhq/client/types.ts": "npm:@notionhq/client@2.2.14/build/src/api-types.d.ts",
+    "@std/assert": "jsr:@std/assert@0.220.1",
+    "@std/encoding": "jsr:@std/encoding@^1.0.7",
+    "@std/fmt": "jsr:@std/fmt@0.220.1",
+    "@std/fmt/colors": "jsr:@std/fmt@0.220.1/colors",
+    "@std/fs": "jsr:@std/fs@0.220.1",
+    "@std/html": "jsr:@std/html@^1.0.3",
+    "@std/path": "jsr:@std/path@0.220.1",
+    "@std/testing": "jsr:@std/testing@0.220.1",
+    "@std/testing/mock": "jsr:@std/testing@0.220.1/mock",
+    "marked": "npm:marked@9.1.6",
+    "@std/dotenv": "jsr:@std/dotenv@^0.225.3"
+  }
+}
