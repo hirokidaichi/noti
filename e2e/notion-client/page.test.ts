@@ -138,7 +138,9 @@ describe('Notion Client Page Operations', () => {
             rich_text: [{ type: 'text', text: { content: 'Test' } }],
           },
         }]);
-        throw new Error('Expected to throw an error for invalid block operation');
+        throw new Error(
+          'Expected to throw an error for invalid block operation',
+        );
       } catch (error: any) {
         assertEquals(
           error.message.includes('path.block_id should be a valid uuid'),

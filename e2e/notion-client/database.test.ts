@@ -48,6 +48,7 @@ describe('Notion Client Database Operations', () => {
       });
 
       assertExists(database.id);
+      // deno-lint-ignore no-explicit-any
       assertEquals((database as any).title[0].text.content, 'Test Database');
       testDatabaseId = database.id;
     });
@@ -68,6 +69,7 @@ describe('Notion Client Database Operations', () => {
       });
 
       assertExists(updated.properties.Tags);
+      // deno-lint-ignore no-explicit-any
       assertEquals(
         (updated.properties.Tags as any).multi_select.options[0].name,
         'Important',
@@ -93,6 +95,7 @@ describe('Notion Client Database Operations', () => {
       });
 
       assertEquals(result.results.length, 1);
+      // deno-lint-ignore no-explicit-any
       assertEquals(
         (result.results[0] as any).properties.Name.title[0].text.content,
         'Test Entry',
@@ -133,6 +136,7 @@ describe('Notion Client Database Operations', () => {
       });
 
       assertExists(movedPage);
+      // deno-lint-ignore no-explicit-any
       assertEquals(
         (movedPage as any).properties.Name.title[0].text.content,
         'Page to Move',
@@ -165,6 +169,7 @@ describe('Notion Client Database Operations', () => {
       });
 
       assertExists(copiedPage);
+      // deno-lint-ignore no-explicit-any
       assertEquals(
         (copiedPage as any).properties.Name.title[0].text.content,
         'Page to Copy',
@@ -173,6 +178,7 @@ describe('Notion Client Database Operations', () => {
       // コンテンツが正しくコピーされたか確認
       const blocks = await client.getBlocks(copiedPage.id);
       assertEquals(blocks.results.length, 1);
+      // deno-lint-ignore no-explicit-any
       assertEquals(
         (blocks.results[0] as any).paragraph.rich_text[0].text.content,
         'Test content',
@@ -239,6 +245,7 @@ describe('Notion Client Database Operations', () => {
 
         // リレーションを確認
         const retrievedPage = await client.getPage(sourcePage.id);
+        // deno-lint-ignore no-explicit-any
         const relations =
           (retrievedPage as any).properties.RelatedItems.relation;
         assertEquals(relations.length, 1);
@@ -272,10 +279,12 @@ describe('Notion Client Database Operations', () => {
 
         // リレーションを確認
         const retrievedPage = await client.getPage(sourcePage.id);
+        // deno-lint-ignore no-explicit-any
         const relations =
           (retrievedPage as any).properties.RelatedItems.relation;
         assertEquals(relations.length, 2);
         assertEquals(
+          // deno-lint-ignore no-explicit-any
           relations.map((r: any) => r.id).sort(),
           targetPages.map((p) => p.id).sort(),
         );
@@ -310,6 +319,7 @@ describe('Notion Client Database Operations', () => {
 
         // 更新されたリレーションを確認
         const updatedPage = await client.getPage(sourcePage.id);
+        // deno-lint-ignore no-explicit-any
         const relations = (updatedPage as any).properties.RelatedItems.relation;
         assertEquals(relations.length, 1);
         assertEquals(relations[0].id, targetPage2.id);

@@ -1,5 +1,5 @@
 import { assertEquals, assertExists } from '@std/assert';
-import { afterAll, beforeAll, describe, it } from '@std/testing/bdd';
+import { beforeAll, describe, it } from '@std/testing/bdd';
 import { NotionClient } from '../../src/lib/notion/client.ts';
 import { loadTestConfig } from '../test-config.ts';
 import { Config } from '../../src/lib/config/config.ts';
@@ -48,6 +48,7 @@ describe('Notion Client Search Operations', () => {
       });
 
       assertExists(results.results);
+      // deno-lint-ignore no-explicit-any
       results.results.forEach((result: any) => {
         assertEquals(result.object, 'page');
       });
@@ -64,6 +65,7 @@ describe('Notion Client Search Operations', () => {
       });
 
       assertExists(results.results);
+      // deno-lint-ignore no-explicit-any
       results.results.forEach((result: any) => {
         assertEquals(result.object, 'database');
       });
