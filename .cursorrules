@@ -143,3 +143,23 @@ deno test
     - エラーの根本原因を特定し修正する
     - 必要に応じてテストを修正・更新する
     - リンターエラーは適切に対処する 
+
+# タスク一覧
+
+以下のタスクが利用可能です：
+
+- `deno task dev` - ウォッチモードで開発サーバーを起動
+- `deno task test` - ユニットテストを実行
+- `deno task test:watch` - ウォッチモードでユニットテストを実行
+- `deno task e2e` - E2Eテストを実行
+- `deno task e2e:watch` - ウォッチモードでE2Eテストを実行
+- `deno task lint` - リンターを実行
+- `deno task fmt` - コードフォーマットを実行
+- `deno task compile` - 実行ファイルをコンパイル
+- `deno task compile:all` - 全プラットフォーム向けにコンパイル
+- `deno task compile:linux` - Linux向けにコンパイル
+- `deno task compile:macos` - macOS向けにコンパイル
+- `deno task compile:windows` - Windows向けにコンパイル
+- `deno task install` - グローバルにインストール
+- `deno task clean` - ビルド成果物を削除
+- `deno task noti` - CLIを直接実行 
