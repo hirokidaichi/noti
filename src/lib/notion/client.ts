@@ -1,6 +1,15 @@
 import { Client, LogLevel } from '@notionhq/client';
 import { Config } from '../config/config.ts';
-import type { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints.js';
+import type {
+  CreateDatabaseParameters,
+  CreateDatabaseResponse,
+  CreatePageParameters,
+  DatabaseObjectResponse,
+  QueryDatabaseParameters,
+  QueryDatabaseResponse,
+  UpdateDatabaseParameters,
+  UpdateDatabaseResponse,
+} from '@notionhq/client/build/src/api-endpoints.js';
 
 // Notionのブロック型定義
 interface BlockObject {
@@ -66,6 +75,14 @@ type PropertyValueType =
   | { relation: Array<{ id: string }> }
   | { status: { name: string } };
 
+// データベースプロパティの型定義
+type DatabasePropertyConfigType = NonNullable<
+  CreateDatabaseParameters['properties']
+>;
+type DatabasePropertyConfig = {
+  [key: string]: DatabasePropertyConfigType[string];
+};
+
 export class NotionClient {
   private client: Client;
 
@@ -102,11 +119,13 @@ export class NotionClient {
       property: 'object';
       value: 'page' | 'database';
     };
+    start_cursor?: string;
   }) {
     return await this.client.search({
       query: params.query,
       page_size: params.page_size,
       filter: params.filter,
+      start_cursor: params.start_cursor,
       sort: {
         direction: 'descending',
         timestamp: 'last_edited_time',
@@ -275,6 +294,184 @@ export class NotionClient {
     return await this.client.pages.update({
       page_id: pageId,
       properties,
+    });
+  }
+
+  // データベースの作成
+  async createDatabase(params: {
+    parent: CreateDatabaseParameters['parent'];
+    title: CreateDatabaseParameters['title'];
+    properties: DatabasePropertyConfig;
+  }): Promise<CreateDatabaseResponse> {
+    return await this.client.databases.create(params);
+  }
+
+  // データベースの更新
+  async updateDatabase(params: {
+    database_id: string;
+    title?: UpdateDatabaseParameters['title'];
+    properties?: DatabasePropertyConfig;
+  }): Promise<UpdateDatabaseResponse> {
+    return await this.client.databases.update({
+      database_id: params.database_id,
+      ...(params.title && { title: params.title }),
+      ...(params.properties && { properties: params.properties }),
+    });
+  }
+
+  // データベースのプロパティ追加/更新
+  async updateDatabaseProperties(
+    databaseId: string,
+    properties: DatabasePropertyConfig,
+  ): Promise<UpdateDatabaseResponse> {
+    return await this.updateDatabase({
+      database_id: databaseId,
+      properties,
+    });
+  }
+
+  // データベースページの移動/コピー
+  async moveOrCopyDatabasePage(params: {
+    page_id: string;
+    target_database_id: string;
+    operation: 'move' | 'copy';
+    with_content?: boolean;
+  }) {
+    // 1. 元のページの情報を取得
+    const sourcePage = await this.getPage(params.page_id);
+    const sourceBlocks = params.with_content
+      ? await this.getBlocks(params.page_id)
+      : null;
+
+    // 2. ターゲットデータベースのスキーマを取得
+    const targetDatabase = await this.client.databases.retrieve({
+      database_id: params.target_database_id,
+    });
+
+    // 3. プロパティの互換性を確保
+    const compatibleProperties: Record<string, any> = {};
+    const sourceProperties = (sourcePage as any).properties;
+
+    // ターゲットデータベースのプロパティスキーマに基づいてプロパティを設定
+    for (const [key, schema] of Object.entries(targetDatabase.properties)) {
+      if (sourceProperties[key]) {
+        const sourceValue = sourceProperties[key];
+        if (sourceValue.type === schema.type) {
+          // プロパティタイプに応じた変換処理
+          switch (sourceValue.type) {
+            case 'title':
+            case 'rich_text':
+            case 'number':
+            case 'checkbox':
+            case 'url':
+            case 'email':
+            case 'phone_number':
+            case 'date':
+              // 直接コピー可能なプロパティ
+              compatibleProperties[key] = sourceValue;
+              break;
+            case 'select':
+              // セレクトオプションの互換性チェック
+              if (
+                (schema as any).select.options.some((option: any) =>
+                  option.name === sourceValue.select.name
+                )
+              ) {
+                compatibleProperties[key] = sourceValue;
+              }
+              break;
+            case 'multi_select':
+              // マルチセレクトオプションの互換性チェック
+              const validOptions = sourceValue.multi_select.filter((
+                option: any,
+              ) =>
+                (schema as any).multi_select.options.some((schemaOption: any) =>
+                  schemaOption.name === option.name
+                )
+              );
+              if (validOptions.length > 0) {
+                compatibleProperties[key] = {
+                  type: 'multi_select',
+                  multi_select: validOptions,
+                };
+              }
+              break;
+            case 'relation':
+              // リレーションの互換性チェック
+              if (
+                (schema as any).relation.database_id ===
+                  sourceValue.relation.database_id
+              ) {
+                compatibleProperties[key] = sourceValue;
+              }
+              break;
+              // その他のプロパティタイプは必要に応じて追加
+          }
+        }
+      }
+    }
+
+    // タイトルプロパティが必須なので、存在しない場合は追加
+    if (!compatibleProperties.Name || !compatibleProperties.Name.title) {
+      compatibleProperties.Name = {
+        type: 'title',
+        title: [{ type: 'text', text: { content: 'Untitled' } }],
+      };
+    }
+
+    // 4. 新しいページを作成
+    const newPage = await this.createDatabasePage(
+      params.target_database_id,
+      compatibleProperties,
+    );
+
+    // 5. コンテンツをコピー（必要な場合）
+    if (sourceBlocks && params.with_content) {
+      await this.appendBlocks(newPage.id, sourceBlocks.results);
+    }
+
+    // 6. 元のページを削除（移動の場合）
+    if (params.operation === 'move') {
+      await this.client.pages.update({
+        page_id: params.page_id,
+        archived: true,
+      });
+    }
+
+    return newPage;
+  }
+
+  // リレーションの設定
+  async setPageRelation(params: {
+    page_id: string;
+    property_name: string;
+    relation_ids: string[];
+  }) {
+    return await this.client.pages.update({
+      page_id: params.page_id,
+      properties: {
+        [params.property_name]: {
+          type: 'relation',
+          relation: params.relation_ids.map((id) => ({ id })),
+        },
+      },
+    });
+  }
+
+  // データベースのクエリ（拡張版）
+  async queryDatabase(params: {
+    database_id: string;
+    filter?: QueryDatabaseParameters['filter'];
+    sorts?: QueryDatabaseParameters['sorts'];
+    page_size?: number;
+    start_cursor?: string;
+  }): Promise<QueryDatabaseResponse> {
+    return await this.client.databases.query({
+      database_id: params.database_id,
+      filter: params.filter,
+      sorts: params.sorts,
+      page_size: params.page_size,
+      start_cursor: params.start_cursor,
     });
   }
 }

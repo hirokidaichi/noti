@@ -15,6 +15,7 @@
     "@std/html": "jsr:@std/html@^1.0.3",
     "@std/path": "jsr:@std/path@0.220.1",
     "@std/testing": "jsr:@std/testing@0.220.1",
+    "@std/testing/bdd": "jsr:@std/testing@0.220.1/bdd",
     "@std/testing/mock": "jsr:@std/testing@0.220.1/mock",
     "marked": "npm:marked@9.1.6",
     "@std/dotenv": "jsr:@std/dotenv@^0.225.3"
