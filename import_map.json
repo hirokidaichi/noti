@@ -8,6 +8,7 @@
     "@notionhq/client/build/src/api-endpoints.js": "npm:@notionhq/client@2.2.14/build/src/api-endpoints.js",
     "@notionhq/client/types.ts": "npm:@notionhq/client@2.2.14/build/src/api-types.d.ts",
     "@std/assert": "jsr:@std/assert@0.220.1",
+    "@std/csv": "jsr:@std/csv@1.0.5",
     "@std/encoding": "jsr:@std/encoding@^1.0.7",
     "@std/fmt": "jsr:@std/fmt@0.220.1",
     "@std/fmt/colors": "jsr:@std/fmt@0.220.1/colors",

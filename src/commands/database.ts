@@ -5,6 +5,7 @@ import { Config } from '../lib/config/config.ts';
 import { FuzzyFinder, SearchItem } from '../lib/fuzzy-finder.ts';
 import { TTYController } from '../lib/tty-controller.ts';
 import { databasePageCommand } from './database/page.ts';
+import { exportCommand } from './database/export.ts';
 import { OutputHandler } from '../lib/command-utils/output-handler.ts';
 import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
 
@@ -19,6 +20,7 @@ export const databaseCommand = new Command()
   .name('database')
   .description('データベース関連のコマンド')
   .command('page', databasePageCommand)
+  .command('export', exportCommand)
   .command(
     'list',
     new Command()

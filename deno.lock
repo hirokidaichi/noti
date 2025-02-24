@@ -8,9 +8,15 @@
     "jsr:@cliffy/keycode@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/prompt@1.0.0-rc.7": "1.0.0-rc.7",
     "jsr:@cliffy/table@1.0.0-rc.7": "1.0.0-rc.7",
+    "jsr:@deno-library/termbox@0.2.1": "0.2.1",
     "jsr:@std/assert@0.220.1": "0.220.1",
     "jsr:@std/assert@~0.220.1": "0.220.1",
     "jsr:@std/assert@~1.0.6": "1.0.11",
+    "jsr:@std/async@~0.220.1": "0.220.1",
+    "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/csv@1.0.5": "1.0.5",
+    "jsr:@std/csv@^1.0.5": "1.0.5",
+    "jsr:@std/data-structures@~0.220.1": "0.220.1",
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@^1.0.7": "1.0.7",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
@@ -19,10 +25,12 @@
     "jsr:@std/fmt@~1.0.2": "1.0.5",
     "jsr:@std/fs@0.220.1": "0.220.1",
     "jsr:@std/fs@~0.220.1": "0.220.1",
+    "jsr:@std/html@^1.0.3": "1.0.3",
     "jsr:@std/io@~0.224.9": "0.224.9",
     "jsr:@std/path@0.220.1": "0.220.1",
     "jsr:@std/path@~0.220.1": "0.220.1",
     "jsr:@std/path@~1.0.6": "1.0.8",
+    "jsr:@std/streams@^1.0.8": "1.0.9",
     "jsr:@std/testing@0.220.1": "0.220.1",
     "jsr:@std/text@~1.0.7": "1.0.10",
     "npm:@notionhq/client@*": "2.2.15",
@@ -82,6 +90,9 @@
         "jsr:@std/fmt@~1.0.2"
       ]
     },
+    "@deno-library/termbox@0.2.1": {
+      "integrity": "ad34d69a33ff34a15b9ca05c4734ae8058a27f115fded30ac6ee619740704413"
+    },
     "@std/assert@0.220.1": {
       "integrity": "88710d54f3afdd7a5761e7805abba1f56cd14e4b212feffeb3e73a9f77482425",
       "dependencies": [
@@ -90,6 +101,21 @@
     },
     "@std/assert@1.0.11": {
       "integrity": "2461ef3c368fe88bc60e186e7744a93112f16fd110022e113a0849e94d1c83c1"
+    },
+    "@std/async@0.220.1": {
+      "integrity": "61f0e9c53bf81f516aa7f54843f307eb5f05c5cf9902575a636ead162b5dfafe"
+    },
+    "@std/bytes@1.0.5": {
+      "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/csv@1.0.5": {
+      "integrity": "02006ffd77e84b2bf01968d4e792f0b5cba057c73dc6a89accb96d803493675f",
+      "dependencies": [
+        "jsr:@std/streams"
+      ]
+    },
+    "@std/data-structures@0.220.1": {
+      "integrity": "031c2982782f4284813c33f904d9e948fb369bc7f830d43fb05355c96a30435b"
     },
     "@std/dotenv@0.225.3": {
       "integrity": "a95e5b812c27b0854c52acbae215856d9cce9d4bbf774d938c51d212711e8d4a"
@@ -110,6 +136,9 @@
         "jsr:@std/path@~0.220.1"
       ]
     },
+    "@std/html@1.0.3": {
+      "integrity": "7a0ac35e050431fb49d44e61c8b8aac1ebd55937e0dc9ec6409aa4bab39a7988"
+    },
     "@std/io@0.224.9": {
       "integrity": "4414664b6926f665102e73c969cfda06d2c4c59bd5d0c603fd4f1b1c840d6ee3"
     },
@@ -122,10 +151,21 @@
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
     },
+    "@std/streams@1.0.9": {
+      "integrity": "a9d26b1988cdd7aa7b1f4b51e1c36c1557f3f252880fa6cc5b9f37078b1a5035",
+      "dependencies": [
+        "jsr:@std/bytes"
+      ]
+    },
     "@std/testing@0.220.1": {
       "integrity": "be77cc1df543f70217d450612637f9f6fcc6887f19fca89665ce08456ee1f290",
       "dependencies": [
-        "jsr:@std/assert@~0.220.1"
+        "jsr:@std/assert@~0.220.1",
+        "jsr:@std/async",
+        "jsr:@std/data-structures",
+        "jsr:@std/fmt@~0.220.1",
+        "jsr:@std/fs@~0.220.1",
+        "jsr:@std/path@~0.220.1"
       ]
     },
     "@std/text@1.0.10": {
@@ -901,6 +941,7 @@
       "jsr:@cliffy/table@1.0.0-rc.7",
       "jsr:@deno-library/termbox@0.2.1",
       "jsr:@std/assert@0.220.1",
+      "jsr:@std/csv@^1.0.5",
       "jsr:@std/dotenv@~0.225.3",
       "jsr:@std/encoding@^1.0.7",
       "jsr:@std/fmt@0.220.1",

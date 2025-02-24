@@ -271,6 +271,51 @@ noti database page remove <page_id_or_url> -f
 - 削除前に確認プロンプトが表示されます（-fオプションでスキップ可能）
 - 削除されたページは、Notionのウェブインターフェースから復元可能です
 
+#### データベースのエクスポート
+
+```bash
+# データベースをエクスポート（デフォルトはJSON形式）
+noti database export <database_id_or_url>
+
+# CSV形式でエクスポート
+noti database export <database_id_or_url> -f csv
+
+# Markdown形式でエクスポート
+noti database export <database_id_or_url> -f markdown
+
+# ファイルに出力
+noti database export <database_id_or_url> -f csv -o output.csv
+```
+
+エクスポート形式の特徴：
+
+1. JSON形式
+   - データベースとページの完全な情報を含む
+   - Notionの生のデータ構造を保持
+   - プログラムでの再利用に適している
+
+2. CSV形式
+   - シンプルな表形式でデータを表示
+   - スプレッドシートでの利用に適している
+   - 日付とタイトルの基本情報を含む
+
+3. Markdown形式
+   - テーブル形式で見やすく表示
+   - ドキュメントへの埋め込みに適している
+   - GitHubなどでの表示に適している
+
+使用例：
+
+```bash
+# データベースを選択してCSVとしてエクスポート
+noti database export $(noti database list) -f csv > database.csv
+
+# 複数のデータベースをJSONとしてエクスポート
+for id in $(noti database list); do
+  noti database export $id -o "${id}.json"
+done
+```
+
 ### 検索
 
 ```bash
