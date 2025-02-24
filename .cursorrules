@@ -1,155 +1,48 @@
-# コーディングルール
+# Cursor開発ルール
 
-## 1. Deno外部モジュールの管理
+## 1. ディレクトリ構造
+- ソースコードは`src/`以下に配置
+- テストは同じディレクトリに`.test.ts`として配置
+- 開発中ファイルは`.wip`拡張子を使用
 
-外部モジュールを追加する際は、必ず`deno add`コマンドを使用し、`deno.json`に記録する必要があります。
-
+## 2. インポート規則
 ```typescript
-// ❌ 悪い例
-import { serve } from 'https://deno.land/std@0.140.0/http/server.ts';
+// ❌ 避けるべき
+import { Command } from 'cliffy/command';        // 直接URLの指定
+import { colors } from '../../deps.ts';          // depsファイル経由
+import { util } from '../../lib/utils.ts';       // 相対パス
 
-// ✅ 良い例
-// 1. まず以下のコマンドを実行
-// deno add https://deno.land/std@0.140.0/http/server.ts
-// 2. その後、以下のようにインポート
-import { serve } from '@std/http/server.ts';
+// ✅ 推奨
+import { Command } from '@cliffy/command';       // インポートマップ使用
+import { bold } from '@std/fmt/colors';          // 直接インポート
+import { util } from '@lib/utils.ts';            // エイリアス使用
 ```
 
-## 2. エイリアスインポートの強制
+## 3. データ処理
+### CSVファイル
+```csv
+# ❌ name,tags
+# John Doe,"tag1,tag2"
 
-全てのファイルで相対パスによるインポートを禁止し、エイリアス表記を使用する必要があります。
-また、エイリアスインポート時は`mod.ts`を指定する必要はありません。
+# ✅ name,tags
+# John Doe,tag1;tag2
+```
 
+### 外部API
 ```typescript
-// ❌ 悪い例
-import { someFunction } from '../../lib/utils.ts';
-import { ensureDir } from '@std/fs/mod.ts';
-
-// ✅ 良い例
-import { someFunction } from '@lib/utils.ts';
-import { ensureDir } from '@std/fs';
+// ❌ new (globalThis as any).Client()
+// ✅ import { Client } from '@notionhq/client'
 ```
 
-## 3. コード品質チェック
+## 4. 品質管理
+- コミット前に必ず実行：`deno lint && deno check && deno test`
+- `--no-verify`の使用は禁止
+- `console.log`の代わりに`Logger`を使用
 
-全てのコードは以下のチェックをパスする必要があります：
-
-- `deno lint` - コードスタイルとリンターチェック
-- `deno check` - 型チェック
-- `deno test` - ユニットテストの実行
-
-これらのチェックは pre-commit フックとして設定されており、コミット前に自動的に実行されます。
-
-### テストファイルの規則
-
-- テストファイルは、テスト対象のファイルと同じディレクトリに配置します
-- テストファイルの命名は `{元のファイル名}.test.ts` の形式に統一します
-- `__tests__`ディレクトリは使用しません
-
-```typescript
-// ❌ 悪い例
-src/__tests__/hoge.test.ts
-src/tests/hoge.test.ts
-src/hoge.spec.ts
-
-// ✅ 良い例
-src/hoge.test.ts
-src/lib/utils.test.ts
-```
-
-## 4. ロギングとデバッグ
-
-プロジェクト全体で統一されたロギング方法を使用します。直接`console.log`を使用せず、`Logger`クラスを使用してください。
-
-### ロガーの使用方法
-
-```typescript
-// ❌ 悪い例
-console.log('デバッグ情報:', data);
-console.error('エラーが発生しました');
-
-// ✅ 良い例
-const logger = Logger.getInstance();
-logger.debug('デバッグ情報', data);
-logger.error('エラーが発生しました', error);
-```
-
-### ログレベル
-
-- `debug`: デバッグ情報（デバッグモード時のみ出力）
-- `error`: エラー情報（赤色で表示）
-- `info`: 一般的な情報（青色で表示）
-- `success`: 成功情報（緑色で表示）
-
-### デバッグモード
-
-- デバッグ出力は`-d`または`--debug`オプションが指定された場合のみ有効
-- デバッグ情報は`stderr`に出力
-- オブジェクトデータは自動的に整形して出力
-
-## 5. プロジェクト構成
-
-プロジェクトは以下のディレクトリ構造に従って整理します：
-
-```
-src/
-├── commands/      # CLIコマンドの実装
-├── lib/          # 共通ライブラリ
-│   ├── config/   # 設定関連の実装
-│   ├── converter/ # 変換処理の実装
-│   ├── notion/   # Notion API関連の実装
-│   └── *.ts      # ユーティリティ実装
-└── main.ts       # エントリーポイント
-```
-
-### ディレクトリの役割
-
-- `commands/`: 各CLIコマンドの実装
-  - 各コマンドは独立したファイルとして実装
-  - コマンドのオプション、引数、ヘルプの定義を含む
-
-- `lib/`: 共通ライブラリとユーティリティ
-  - `config/`: 設定ファイルの管理、エイリアス設定
-  - `converter/`: Markdown⇔Notionブロックの変換
-  - `notion/`: Notion APIクライアントと関連機能
-  - ルートの`*.ts`: 汎用ユーティリティ（ロガー、通知など）
-
-### ファイル命名規則
-
-- 実装ファイル: `kebab-case.ts`
-- テストファイル: `kebab-case.test.ts`
-- 型定義ファイル: `types.ts`
-- インデックスファイル: `mod.ts`
-
-### pre-commit フック
-
-以下のコマンドが自動的に実行されます：
-
-```bash
-deno lint
-deno check
-deno test
-```
-
-全てのチェックがパスした場合のみ、コミットが許可されます。
-
-# コミット時のルール
-- テストやリンターのエラーを`--no-verify`で回避することは絶対に禁止
-  - 理由：
-    - 品質低下につながる
-    - 技術的負債の蓄積を招く
-    - 後で大きな問題になる可能性がある
-  - 対応方法：
-    - エラーの根本原因を特定し修正する
-    - 必要に応じてテストを修正・更新する
-    - リンターエラーは適切に対処する 
-
-# リリース手順について質問された場合
-
-リリース手順については、`docs/release.md`を参照するように案内してください。このドキュメントには以下の情報が含まれています：
-
-- 自動リリースワークフローの説明
-- 具体的なリリース手順
-- バージョニングルール
-- トラブルシューティング
+## 5. レビューチェック
+- [ ] ディレクトリ構造
+- [ ] インポートパス（エイリアス、相対パス）
+- [ ] 外部APIの使用方法
+- [ ] 開発中機能の非公開設定（.wip）
+- [ ] データ処理の妥当性
 
