@@ -74,8 +74,9 @@ jobs:
 
       - name: Vendor dependencies
         run: |
-          deno vendor src/main.ts
           rm -f deno.lock
+          deno cache --reload src/main.ts
+          deno vendor src/main.ts
 
       - name: Create dist directory
         run: mkdir -p dist
