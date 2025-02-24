@@ -10,62 +10,12 @@ permissions:
   discussions: write
 
 jobs:
-  create-release:
+  release:
     runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: "1.40.2"
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          if [ -z "$PREVIOUS_TAG" ]; then
-            CHANGELOG=$(git log --pretty=format:"* %s")
-          else
-            CHANGELOG=$(git log --pretty=format:"* %s" $PREVIOUS_TAG..HEAD)
-          fi
-          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
-          echo "$CHANGELOG" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: Create Release
-        id: create_release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
-          body: ${{ env.CHANGELOG }}
-          draft: false
-          prerelease: false
-
-  build:
-    needs: create-release
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            asset_name: noti-linux
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            asset_name: noti-macos
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            asset_name: noti-windows.exe
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
 
       - name: Setup Deno
         uses: denoland/setup-deno@v1
@@ -81,17 +31,40 @@ jobs:
         run: |
           npm install @notionhq/client@2.2.14
 
+      - name: Generate changelog
+        id: changelog
+        run: |
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREVIOUS_TAG" ]; then
+            CHANGELOG=$(git log --pretty=format:"* %s")
+          else
+            CHANGELOG=$(git log --pretty=format:"* %s" $PREVIOUS_TAG..HEAD)
+          fi
+          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+          echo "$CHANGELOG" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Run tests and checks
+        run: deno task all-check
+
       - name: Create dist directory
         run: mkdir -p dist
 
-      - name: Build
-        run: |
-          deno compile -A --target ${{ matrix.target }} src/main.ts -o dist/${{ matrix.asset_name }}
+      - name: Build all platforms
+        run: deno task compile:all
 
-      - name: Upload Release Asset
+      - name: Create Release
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
-          files: dist/${{ matrix.asset_name }} 
+          name: Release ${{ github.ref_name }}
+          body: ${{ env.CHANGELOG }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/noti-linux
+            dist/noti-macos
+            dist/noti-macos-arm64
+            dist/noti-windows.exe 
