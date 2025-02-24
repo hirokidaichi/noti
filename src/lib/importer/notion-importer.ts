@@ -11,7 +11,7 @@ import {
 
 export class NotionImporter {
   private csvImporter: CSVImporter;
-  private notionClient: NotionClient;
+  private notionClient: NotionClient & Partial<Client>;
   private config: NotionImportConfig;
 
   constructor(
@@ -21,9 +21,10 @@ export class NotionImporter {
     notionClientClass?: new (apiKey: string) => NotionClient,
   ) {
     this.csvImporter = new CSVImporter(csvContent);
-    this.notionClient = notionClientClass
+    const client = notionClientClass
       ? new notionClientClass(notionApiKey)
-      : new Client({ auth: notionApiKey });
+      : new Client({ auth: notionApiKey }) as unknown as NotionClient;
+    this.notionClient = client;
     this.config = config;
   }
 
@@ -44,9 +45,9 @@ export class NotionImporter {
 
     return Promise.resolve(
       Object.entries(schema.properties).map(([key, value]) => ({
-        sourceField: key,
+        sourceField: value.name?.toLowerCase() ?? key.toLowerCase(),
         targetField: key,
-        required: false,
+        required: value.required,
         dataType: this.mapNotionTypeToDataType(value.type),
       })),
     );

@@ -1,9 +1,6 @@
 import { Client } from '@notionhq/client';
-import {
-  NotionClient,
-  NotionDatabaseSchema,
-  NotionPropertyType,
-} from './notion-types.ts';
+import { NotionClient } from './notion-types.ts';
+import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints.js';
 
 type NotionPropertyValue =
   | { type: 'title'; title: Array<{ text: { content: string } }> }
@@ -21,134 +18,65 @@ type NotionPropertyValue =
     files: Array<{ name: string; type: 'external'; external: { url: string } }>;
   };
 
-export class NotionApiClient implements NotionClient {
-  private client: Client;
-  private readonly DEFAULT_BATCH_SIZE = 100;
-
+export class NotionApiClient extends Client implements NotionClient {
   constructor(apiKey: string) {
-    this.client = new Client({ auth: apiKey });
+    super({ auth: apiKey });
   }
 
-  async getDatabaseSchema(databaseId: string): Promise<NotionDatabaseSchema> {
-    const response = await this.client.databases.retrieve({
+  async getDatabaseSchema(databaseId: string): Promise<{
+    properties: Record<string, { type: string; name: string }>;
+  }> {
+    const response = await this.databases.retrieve({
       database_id: databaseId,
     });
-
-    const properties: Record<
-      string,
-      { type: NotionPropertyType; name: string }
-    > = {};
-    for (const [key, prop] of Object.entries(response.properties)) {
-      properties[key] = {
-        type: prop.type as NotionPropertyType,
-        name: prop.name,
-      };
-    }
-
-    return { properties };
-  }
-
-  async createPage(
-    databaseId: string,
-    properties: Record<string, unknown>,
-  ): Promise<void> {
-    await this.client.pages.create({
-      parent: { database_id: databaseId },
-      properties: this.convertProperties(properties),
-    });
+    return {
+      properties: Object.entries(response.properties).reduce(
+        (acc, [key, value]) => {
+          acc[key] = {
+            type: value.type,
+            name: key.toLowerCase(),
+          };
+          return acc;
+        },
+        {} as Record<string, { type: string; name: string }>,
+      ),
+    };
   }
 
   async createPages(
     databaseId: string,
     pages: Record<string, unknown>[],
   ): Promise<void> {
-    // バッチ処理でページを作成
-    const batchSize = this.DEFAULT_BATCH_SIZE;
-    for (let i = 0; i < pages.length; i += batchSize) {
-      const batch = pages.slice(i, i + batchSize);
-      await Promise.all(
-        batch.map((page) => this.createPage(databaseId, page)),
-      );
+    for (const page of pages) {
+      await this.pages.create({
+        parent: { database_id: databaseId },
+        properties: this.convertProperties(page),
+      });
     }
   }
 
   private convertProperties(
-    properties: Record<string, unknown>,
-  ): Record<string, NotionPropertyValue> {
-    const result: Record<string, NotionPropertyValue> = {};
-
-    for (const [key, value] of Object.entries(properties)) {
-      if (value === null || value === undefined) {
-        continue;
+    data: Record<string, unknown>,
+  ): CreatePageParameters['properties'] {
+    return Object.entries(data).reduce((acc, [key, value]) => {
+      if (typeof value === 'string') {
+        acc[key] = { rich_text: [{ text: { content: value } }] };
+      } else if (typeof value === 'number') {
+        acc[key] = { number: value };
+      } else if (typeof value === 'boolean') {
+        acc[key] = { checkbox: value };
+      } else if (value instanceof Date) {
+        acc[key] = { date: { start: value.toISOString() } };
+      } else if (Array.isArray(value)) {
+        acc[key] = {
+          multi_select: value.map((v) => ({ name: String(v) })),
+        };
+      } else if (value === null || value === undefined) {
+        acc[key] = { rich_text: [] };
+      } else {
+        acc[key] = { rich_text: [{ text: { content: String(value) } }] };
       }
-
-      result[key] = this.convertProperty(value);
-    }
-
-    return result;
-  }
-
-  private convertProperty(value: unknown): NotionPropertyValue {
-    if (value instanceof Date) {
-      return {
-        type: 'date',
-        date: {
-          start: value.toISOString(),
-        },
-      };
-    }
-
-    if (Array.isArray(value)) {
-      return {
-        type: 'multi_select',
-        multi_select: value.map((item) => ({ name: String(item) })),
-      };
-    }
-
-    if (typeof value === 'boolean') {
-      return {
-        type: 'checkbox',
-        checkbox: value,
-      };
-    }
-
-    if (typeof value === 'number') {
-      return {
-        type: 'number',
-        number: value,
-      };
-    }
-
-    const stringValue = String(value);
-
-    // URLの判定
-    if (stringValue.match(/^https?:\/\/.+/)) {
-      return {
-        type: 'url',
-        url: stringValue,
-      };
-    }
-
-    // メールアドレスの判定
-    if (stringValue.match(/^[^@]+@[^@]+\.[^@]+$/)) {
-      return {
-        type: 'email',
-        email: stringValue,
-      };
-    }
-
-    // 電話番号の判定
-    if (stringValue.match(/^\+?[\d\s-]+$/)) {
-      return {
-        type: 'phone_number',
-        phone_number: stringValue,
-      };
-    }
-
-    // デフォルトはリッチテキストとして扱う
-    return {
-      type: 'rich_text',
-      rich_text: [{ text: { content: stringValue } }],
-    };
+      return acc;
+    }, {} as CreatePageParameters['properties']);
   }
 }

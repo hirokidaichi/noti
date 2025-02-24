@@ -2,19 +2,19 @@ import { assertEquals, assertNotEquals } from '@std/assert';
 import { CSVImporter } from './csv-importer.ts';
 import { DataMapping } from './types.ts';
 
-Deno.test('CSVImporter - 空のCSVファイルの検証', async () => {
+Deno.test('CSVImporter - 空のCSVファイルの検証', () => {
   const importer = new CSVImporter('');
-  const result = await importer.validate();
+  const result = importer.validate();
   assertEquals(result.isValid, false);
   assertEquals(result.errors[0], 'CSVファイルが空です');
 });
 
-Deno.test('CSVImporter - 有効なCSVファイルの検証', async () => {
+Deno.test('CSVImporter - 有効なCSVファイルの検証', () => {
   const csvContent = 'name,age\nJohn,30\nJane,25';
   const importer = new CSVImporter(csvContent);
   const mapping = importer.generateDefaultMapping();
-  await importer.mapData(mapping);
-  const result = await importer.validate();
+  importer.mapData(mapping);
+  const result = importer.validate();
   assertEquals(result.isValid, true);
   assertEquals(result.errors.length, 0);
 });
@@ -52,14 +52,14 @@ Deno.test('CSVImporter - デフォルトマッピング生成', () => {
   ]);
 });
 
-Deno.test('CSVImporter - マッピングバリデーション - 無効なソースフィールド', async () => {
+Deno.test('CSVImporter - マッピングバリデーション - 無効なソースフィールド', () => {
   const csvContent = 'name,age\nJohn,30';
   const importer = new CSVImporter(csvContent);
   const mapping: DataMapping[] = [
     { sourceField: 'invalid', targetField: 'name' },
   ];
-  await importer.mapData(mapping);
-  const result = await importer.validateMapping();
+  importer.mapData(mapping);
+  const result = importer.validateMapping();
   assertEquals(result.isValid, false);
   assertEquals(result.errors[0].field, 'invalid');
   assertEquals(
@@ -68,7 +68,7 @@ Deno.test('CSVImporter - マッピングバリデーション - 無効なソー�
   );
 });
 
-Deno.test('CSVImporter - データ型バリデーション - 数値型', async () => {
+Deno.test('CSVImporter - データ型バリデーション - 数値型', () => {
   const csvContent = 'name,age\nJohn,30\nJane,invalid';
   const importer = new CSVImporter(csvContent);
   const mapping: DataMapping[] = [
@@ -87,13 +87,13 @@ Deno.test('CSVImporter - データ型バリデーション - 数値型', async (
       ],
     },
   ];
-  await importer.mapData(mapping);
-  const result = await importer.validateDataTypes();
+  importer.mapData(mapping);
+  const result = importer.validateDataTypes(importer.getData(), mapping);
   assertEquals(result.isValid, false);
   assertNotEquals(result.errors.length, 0);
 });
 
-Deno.test('CSVImporter - 必須項目バリデーション', async () => {
+Deno.test('CSVImporter - 必須項目バリデーション', () => {
   const csvContent = 'name,age\nJohn,\nJane,25';
   const importer = new CSVImporter(csvContent);
   const mapping: DataMapping[] = [
@@ -109,13 +109,13 @@ Deno.test('CSVImporter - 必須項目バリデーション', async () => {
       ],
     },
   ];
-  await importer.mapData(mapping);
-  const result = await importer.validateDataTypes();
+  importer.mapData(mapping);
+  const result = importer.validateDataTypes(importer.getData(), mapping);
   assertEquals(result.isValid, false);
   assertEquals(result.errors[0].includes('年齢は必須項目です'), true);
 });
 
-Deno.test('CSVImporter - カスタムバリデーション', async () => {
+Deno.test('CSVImporter - カスタムバリデーション', () => {
   const csvContent = 'email\ntest@example.com\ninvalid-email';
   const importer = new CSVImporter(csvContent);
   const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
@@ -132,8 +132,8 @@ Deno.test('CSVImporter - カスタムバリデーション', async () => {
       ],
     },
   ];
-  await importer.mapData(mapping);
-  const result = await importer.validateDataTypes();
+  importer.mapData(mapping);
+  const result = importer.validateDataTypes(importer.getData(), mapping);
   assertEquals(result.isValid, false);
   assertEquals(
     result.errors[0].includes('有効なメールアドレスを入力してください'),

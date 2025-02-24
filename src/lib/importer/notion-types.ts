@@ -1,3 +1,5 @@
+import { Client } from '@notionhq/client';
+
 export type NotionPropertyType =
   | 'title'
   | 'rich_text'
@@ -23,12 +25,25 @@ export interface NotionDatabaseSchema {
 
 export interface NotionImportConfig {
   databaseId: string;
-  schema: NotionDatabaseSchema;
+  schema: {
+    properties: Record<string, {
+      type: string;
+      name: string;
+      required?: boolean;
+    }>;
+  };
   batchSize?: number;
 }
 
-export interface NotionClient {
-  getDatabaseSchema(databaseId: string): Promise<NotionDatabaseSchema>;
-  createPage(databaseId: string, properties: Record<string, unknown>): Promise<void>;
-  createPages(databaseId: string, pages: Record<string, unknown>[]): Promise<void>;
-} 
+export interface NotionClient extends Client {
+  getDatabaseSchema(databaseId: string): Promise<{
+    properties: Record<
+      string,
+      { type: string; name?: string; required?: boolean }
+    >;
+  }>;
+  createPages(
+    databaseId: string,
+    pages: Record<string, unknown>[],
+  ): Promise<void>;
+}

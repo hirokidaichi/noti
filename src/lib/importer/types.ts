@@ -76,11 +76,14 @@ export interface ImportOptions {
 }
 
 export interface DataImporter {
-  validate(): Promise<ValidationResult>;
-  import(options?: ImportOptions): Promise<ImportResult>;
-  mapData(mapping: DataMapping[]): Promise<void>;
-  validateMapping(): Promise<MappingValidationResult>;
+  validate(progressCallback?: ProgressCallback): ValidationResult;
+  import(options?: ImportOptions): ImportResult;
+  mapData(mapping: DataMapping[]): void;
+  validateMapping(): MappingValidationResult;
+  validateDataTypes(
+    data: Record<string, unknown>[],
+    mapping: DataMapping[],
+  ): ValidationResult;
   getHeaders(): string[];
   generateDefaultMapping(): DataMapping[];
-  validateDataTypes(): Promise<ValidationResult>;
 }

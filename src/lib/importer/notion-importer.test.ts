@@ -1,6 +1,7 @@
 import { assertEquals } from '@std/assert';
 import { NotionImporter } from './notion-importer.ts';
 import { NotionClient, NotionImportConfig } from './notion-types.ts';
+import { Client } from '@notionhq/client';
 
 // モックデータ
 const MOCK_CSV_CONTENT = `name,age,email,tags
@@ -23,27 +24,26 @@ const MOCK_NOTION_CONFIG: NotionImportConfig = {
 const MOCK_API_KEY = 'test-api-key';
 
 // Notionクライアントのモック
-class MockNotionClient implements NotionClient {
-  constructor(private apiKey: string) {}
+class MockNotionClient extends Client implements NotionClient {
+  constructor(apiKey: string) {
+    super({ auth: apiKey });
+  }
 
-  async createPage(
-    _databaseId: string,
-    _properties: Record<string, unknown>,
-  ): Promise<void> {}
-
-  async createPages(
+  createPages(
     _databaseId: string,
     _pages: Record<string, unknown>[],
-  ): Promise<void> {}
+  ): Promise<void> {
+    return Promise.resolve();
+  }
 
   getDatabaseSchema(_databaseId: string) {
-    return {
+    return Promise.resolve({
       properties: {
         name: { type: 'title' },
         age: { type: 'number' },
         email: { type: 'email' },
       },
-    };
+    });
   }
 }
 

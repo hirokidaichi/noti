@@ -35,6 +35,16 @@ export class CSVImporter implements DataImporter {
     return this.data[0];
   }
 
+  getData(): Record<string, unknown>[] {
+    if (this.data.length <= 1) return [];
+    return this.data.slice(1).map((row) => {
+      return this.getHeaders().reduce((obj, header, index) => {
+        obj[header] = row[index];
+        return obj;
+      }, {} as Record<string, unknown>);
+    });
+  }
+
   generateDefaultMapping(): DataMapping[] {
     const headers = this.getHeaders();
     return headers.map((header) => ({
@@ -112,32 +122,29 @@ export class CSVImporter implements DataImporter {
   }
 
   validateDataTypes(
-    data: Record<string, unknown>[],
-    mapping: DataMapping[],
+    _data: Record<string, unknown>[],
+    _mapping: DataMapping[],
   ): ValidationResult {
     const errors: string[] = [];
-    const headers = this.getHeaders();
     const totalRows = this.data.length - 1;
+    const data = this.getData();
 
-    for (let i = 1; i < this.data.length; i++) {
+    for (let i = 0; i < data.length; i++) {
       this.reportProgress(undefined, {
         phase: 'validation',
-        current: i,
+        current: i + 1,
         total: totalRows,
-        message: `データ型の検証中: ${i}/${totalRows}行目`,
+        message: `データ型の検証中: ${i + 1}/${totalRows}行目`,
       });
 
-      const row = this.data[i];
+      const row = data[i];
       for (const map of this.mapping) {
-        const sourceIndex = headers.indexOf(map.sourceField);
-        if (sourceIndex === -1) continue;
-
-        const value = row[sourceIndex];
+        const value = row[map.sourceField];
         if (map.rules) {
           const validationErrors = this.validateValue(value, map.rules);
           if (validationErrors.length > 0) {
             errors.push(
-              `行${i + 1} - ${map.sourceField}: ${validationErrors.join(', ')}`,
+              `行${i + 2} - ${map.sourceField}: ${validationErrors.join(', ')}`,
             );
           }
         }
@@ -242,7 +249,7 @@ export class CSVImporter implements DataImporter {
 
     // データ型の検証
     const dataTypeValidation = this.validateDataTypes(
-      this.data.slice(1),
+      this.getData(),
       this.mapping,
     );
     if (!dataTypeValidation.isValid) {
