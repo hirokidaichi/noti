@@ -72,11 +72,14 @@ jobs:
         with:
           deno-version: "1.40.2"
 
-      - name: Vendor dependencies
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
         run: |
-          rm -f deno.lock
-          deno cache --reload src/main.ts
-          deno vendor src/main.ts
+          npm install @notionhq/client@2.2.14
 
       - name: Create dist directory
         run: mkdir -p dist
