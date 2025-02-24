@@ -22,7 +22,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x
+          deno-version: "1.40.2"
 
       - name: Generate changelog
         id: changelog
@@ -70,7 +70,12 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v1.x
+          deno-version: "1.40.2"
+
+      - name: Vendor dependencies
+        run: |
+          deno vendor src/main.ts
+          rm -f deno.lock
 
       - name: Create dist directory
         run: mkdir -p dist
