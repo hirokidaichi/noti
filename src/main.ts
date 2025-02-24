@@ -9,15 +9,21 @@ import { userCommand } from './commands/user.ts';
 import { databaseCommand } from './commands/database.ts';
 import { openCommand } from './commands/open.ts';
 
-await new Command()
+const command = new Command()
   .name('noti')
-  .description('Notion CLI')
+  .description('Notion CLI Client')
   .version('0.1.0')
-  .command('search', searchCommand)
   .command('configure', configureCommand)
-  .command('page', pageCommand)
   .command('alias', aliasCommand)
+  .command('page', pageCommand)
+  .command('search', searchCommand)
   .command('user', userCommand)
   .command('database', databaseCommand)
-  .command('open', openCommand)
-  .parse(Deno.args);
+  .command('open', openCommand);
+
+if (Deno.args.length === 0) {
+  command.showHelp();
+  Deno.exit(0);
+}
+
+await command.parse(Deno.args);
