@@ -5,6 +5,10 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  discussions: write
+
 jobs:
   create-release:
     runs-on: ubuntu-latest
@@ -47,7 +51,19 @@ jobs:
 
   build:
     needs: create-release
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux
+            asset_name: noti-linux
+          - os: macos-latest
+            target: macos
+            asset_name: noti-macos
+          - os: windows-latest
+            target: windows
+            asset_name: noti-windows.exe
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -59,16 +75,14 @@ jobs:
       - name: Create dist directory
         run: mkdir -p dist
 
-      - name: Build all platforms
-        run: deno task compile:all
+      - name: Build
+        run: |
+          deno compile -A --target ${{ matrix.target }} src/main.ts -o dist/${{ matrix.asset_name }}
 
-      - name: Upload Release Assets
+      - name: Upload Release Asset
         uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref_name }}
-          files: |
-            dist/noti-linux
-            dist/noti-macos
-            dist/noti-windows.exe 
+          files: dist/${{ matrix.asset_name }} 
