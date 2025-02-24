@@ -3,3 +3,4 @@ coverage.lcov .spechistory
 .specstory/
 coverage.lcov
 .env
+dist/
