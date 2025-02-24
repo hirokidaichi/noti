@@ -13,7 +13,7 @@
     "compile:macos": "deno compile -A --target x86_64-apple-darwin --output dist/noti-macos src/main.ts",
     "compile:macos-arm64": "deno compile -A --target aarch64-apple-darwin --output dist/noti-macos-arm64 src/main.ts",
     "compile:windows": "deno compile -A --target x86_64-pc-windows-msvc --output dist/noti-windows.exe src/main.ts",
-    "install": "deno install -A -n noti src/main.ts",
+    "install": "deno install -A --global -n noti --config deno.json src/main.ts",
     "clean": "rm -rf dist",
     "noti": "deno run -A src/main.ts",
     "all-check": "deno task lint && deno check src/ && deno task test"

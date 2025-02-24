@@ -12,51 +12,18 @@ NotionのページやデータベースをCLIから操作するためのツー�
 
 ## インストール
 
-### 方法1: Denoを使用してソースからインストール
+### 方法1: git cloneからインストール
 
 ```bash
-# リポジトリのクローン
 git clone https://github.com/hirokidaichi/noti.git
 cd noti
-
-# 依存関係のインストール
-deno add @std/assert
-deno add @std/path
-deno add @std/testing
-deno add @std/dotenv
-deno add @std/fs
-deno add @cliffy/command
-deno add @cliffy/prompt
-deno add @notionhq/client
-
-# インストール
 deno task install
 ```
 
 ### 方法2: URLから直接インストール
 
 ```bash
-deno install --global -A -f -n noti --import-map https://raw.githubusercontent.com/hirokidaichi/noti/main/deno.json https://raw.githubusercontent.com/hirokidaichi/noti/main/src/main.ts
-```
-
-### 開発者向け
-
-```bash
-# ソースからコンパイル
-git clone https://github.com/hirokidaichi/noti.git
-cd noti
-
-# 現在のプラットフォーム用にコンパイル
-deno task compile
-
-# 全プラットフォーム用にコンパイル
-deno task compile:all
-
-# 開発モードで実行
-deno task dev
-
-# テストの実行
-deno task test
+deno install --global -A -f -n noti --import-map https://raw.githubusercontent.com/hirokidaichi/noti/main/import_map.json https://raw.githubusercontent.com/hirokidaichi/noti/main/src/main.ts
 ```
 
 ## 設定
@@ -64,367 +31,161 @@ deno task test
 初回実行時に、Notion Integration Tokenの設定が必要です。
 トークンは[Notion Integrations](https://www.notion.so/my-integrations)から取得できます。
 
-```bash
-noti configure
-```
+## コマンド一覧
 
-設定したトークンは`~/.config/noti/config.json`に安全に保存されます。
-
-## 基本的な使い方
-
-### ページ操作
-
-#### ページの取得
+### 1. configure - 初期設定
 
 ```bash
-# Markdownとして取得
-noti page get <page_id_or_url>
-
-# JSON形式で取得
-noti page get <page_id_or_url> --format json
-
-# ファイルに出力
-noti page get <page_id_or_url> -o output.md
+noti configure                    # 対話的に設定を行う
+noti configure --token <token>    # トークンを直接指定
+noti configure --show            # 現在の設定を表示
 ```
-
-#### ページの作成
-
-```bash
-# 親ページの下に新規ページを作成
-noti page create <parent_id_or_url> <input_file.md>
-
-# タイトルを指定して作成
-noti page create <parent_id_or_url> <input_file.md> -t "ページタイトル"
-```
-
-タイトルを指定しない場合：
-
-1. 入力ファイルの最初の見出し1（# ）をタイトルとして使用
-2. 見出しがない場合は、ファイル名（拡張子なし）をタイトルとして使用
-
-#### ページへのコンテンツ追加
-
-```bash
-# 既存ページに新しいコンテンツを追加
-noti page append <page_id_or_url> <input_file.md>
-```
-
-#### ページの更新
-
-```bash
-# ページの内容を更新
-noti page update <page_id_or_url> <input_file.md>
-
-# タイトルを変更
-noti page update <page_id_or_url> <input_file.md> -t "新しいタイトル"
-
-# 確認なしで更新
-noti page update <page_id_or_url> <input_file.md> -f
-```
-
-#### ページのコメント
-
-```bash
-# コメントの取得
-noti page comment get <page_id_or_url>
-
-# JSON形式でコメントを取得
-noti page comment get <page_id_or_url> --format json
-
-# コメントの追加
-noti page comment add <page_id_or_url> "コメント内容"
-```
-
-#### ページの削除
-
-```bash
-# 確認プロンプトあり
-noti page remove <page_id_or_url>
-
-# 確認なしで削除
-noti page remove <page_id_or_url> -f
-```
-
-### データベース操作
-
-#### データベースの一覧表示
-
-```bash
-# インタラクティブな一覧表示（fuzzy finder）
-noti database list
-
-# JSON形式で出力
-noti database list --json
-
-# 取得件数を制限（デフォルト: 50）
-noti database list --limit 10
-
-# ファイルに出力
-noti database list -o output.json
-```
-
-データベース一覧の特徴：
-
-- インタラクティブなfuzzy検索UI（デフォルト）
-- 選択したデータベースのIDを出力（他のコマンドとパイプで連携可能）
-- 作成日時、更新日時、URLなどの情報を含む
 
 使用例：
 
 ```bash
-# データベースを選択してブラウザで開く
-noti database list | xargs noti open
+# 初回セットアップ
+noti configure
+> Notion Integration Tokenを入力してください: 
+> トークンを保存しました
 
-# データベースを選択してページを追加
-noti database list | xargs noti database page add
+# 設定の確認
+noti configure --show
+> Token: secret_...
+> 設定ファイル: ~/.config/noti/config.json
 ```
 
-#### データベースページの作成
+### 2. page - ページ操作
 
 ```bash
-# インタラクティブにプロパティを入力
-noti database page add <database_id_or_url>
+# ページの取得
+noti page get <page_id_or_url>                    # Markdownとして取得
+noti page get <page_id_or_url> --format json      # JSON形式で取得
+noti page get <page_id_or_url> -o output.md       # ファイルに出力
 
-# JSONファイルからプロパティを指定
-noti database page create <database_id_or_url> <properties.json>
+# ページの作成
+noti page create <parent_id_or_url> <input_file.md>                    # 親ページの下に作成
+noti page create <parent_id_or_url> <input_file.md> -t "タイトル"      # タイトルを指定
+noti page create <parent_id_or_url> --template <template_id>           # テンプレートから作成
+
+# ページの更新
+noti page update <page_id_or_url> <input_file.md>                      # 内容を更新
+noti page update <page_id_or_url> <input_file.md> -t "新しいタイトル"  # タイトルも更新
+noti page update <page_id_or_url> <input_file.md> -f                   # 確認なしで更新
+
+# ページの追記
+noti page append <page_id_or_url> <input_file.md>                      # 既存ページに追記
+
+# コメント操作
+noti page comment get <page_id_or_url>                                 # コメント一覧取得
+noti page comment get <page_id_or_url> --format json                   # JSON形式で取得
+noti page comment add <page_id_or_url> "コメント内容"                  # コメント追加
+
+# ページの削除
+noti page remove <page_id_or_url>                                      # 確認あり
+noti page remove <page_id_or_url> -f                                   # 確認なし
 ```
 
-インタラクティブモードでは、データベースの各プロパティタイプに応じて適切な入力方法が提供されます：
+使用例：
 
-- `title`: タイトルテキスト（必須）
-- `rich_text`: 複数行テキスト
-- `select`: ドロップダウンから選択
-- `multi_select`: 複数選択（チェックボックス）
-- `checkbox`: はい/いいえの選択
-- `number`: 数値入力（バリデーションあり）
-- `date`: 日付入力（ISO 8601形式）
-- `url`: URL入力
-- `email`: メールアドレス入力
-- `phone_number`: 電話番号入力
+```bash
+# Markdownファイルから新規ページを作成
+echo "# テストページ" > test.md
+noti page create <parent_id> test.md
 
-JSONファイルでの作成例：
+# ページの内容を取得してファイルに保存
+noti page get <page_id> -o page.md
 
-```json
+# ページにコメントを追加
+noti page comment add <page_id> "タスクが完了しました"
+```
+
+### 3. database - データベース操作
+
+```bash
+# データベース一覧
+noti database list                           # インタラクティブ表示
+noti database list --json                    # JSON形式で出力
+noti database list --limit 10                # 取得件数制限
+noti database list -o output.json            # ファイルに出力
+
+# データベースページの作成
+noti database page add <database_id_or_url>  # インタラクティブに作成
+noti database page create <database_id_or_url> <properties.json>  # JSONから作成
+
+# データベースページの取得
+noti database page get <page_id_or_url>      # Markdown形式で取得
+noti database page get <page_id_or_url> --json  # JSON形式で取得
+noti database page get <page_id_or_url> -o output.md  # ファイルに出力
+
+# データベースのエクスポート
+noti database export <database_id_or_url>     # JSON形式（デフォルト）
+noti database export <database_id_or_url> -f csv  # CSV形式
+noti database export <database_id_or_url> -f markdown  # Markdown形式
+```
+
+使用例：
+
+```bash
+# データベースの一覧を取得してJSONで保存
+noti database list --json > databases.json
+
+# プロパティファイルからデータベースページを作成
+cat << EOF > properties.json
 {
   "properties": {
-    "名前": "プロジェクトA",
-    "状態": "進行中",
-    "優先度": "高",
-    "期限": "2024-03-31",
-    "担当者": ["山田", "鈴木"],
-    "完了": false
+    "名前": "新規タスク",
+    "状態": "未着手",
+    "期限": "2024-03-31"
   }
 }
+EOF
+noti database page create <database_id> properties.json
 ```
 
-#### データベースページの取得
+### 4. search - 検索
 
 ```bash
-# Markdown形式で取得
-noti database page get <page_id_or_url>
-
-# JSON形式で取得
-noti database page get <page_id_or_url> --json
-
-# ファイルに出力
-noti database page get <page_id_or_url> -o output.md
+noti search                           # インタラクティブ検索
+noti search "検索キーワード"          # キーワード検索
+noti search -p <parent_id>           # 特定ページ配下を検索
+noti search --limit 10               # 検索結果数制限
+noti search --json                   # JSON形式で出力
 ```
 
-出力形式：
-
-1. プロパティセクション
-   - 各プロパティの名前と値
-   - 日付、選択肢、チェックボックスなどは適切にフォーマット
-2. コンテンツセクション
-   - ページ内のブロックをMarkdown形式で表示
-
-出力例：
-
-```markdown
-# プロパティ
-
-- 名前: プロジェクトA
-- 状態: 進行中
-- 優先度: 高
-- 期限: 2024-03-31
-- 担当者: 山田, 鈴木
-- 完了: ✗
-
-# コンテンツ
-
-プロジェクトの詳細説明...
-```
-
-#### データベースページの削除
+### 5. alias - エイリアス管理
 
 ```bash
-# 確認プロンプトあり
-noti database page remove <page_id_or_url>
-
-# 確認なしで削除
-noti database page remove <page_id_or_url> -f
+noti alias add <alias_name> <page_id_or_url>  # エイリアス追加
+noti alias remove <alias_name>                 # エイリアス削除
+noti alias list                                # 一覧表示
+noti alias list --json                         # JSON形式で表示
 ```
 
-注意事項：
-
-- データベースページの削除は、アーカイブとして処理されます
-- 削除前に確認プロンプトが表示されます（-fオプションでスキップ可能）
-- 削除されたページは、Notionのウェブインターフェースから復元可能です
-
-#### データベースのエクスポート
+### 6. open - ブラウザで開く
 
 ```bash
-# データベースをエクスポート（デフォルトはJSON形式）
-noti database export <database_id_or_url>
-
-# CSV形式でエクスポート
-noti database export <database_id_or_url> -f csv
-
-# Markdown形式でエクスポート
-noti database export <database_id_or_url> -f markdown
-
-# ファイルに出力
-noti database export <database_id_or_url> -f csv -o output.csv
+noti open <page_id_or_url_or_alias>           # ページを開く
+noti open --app <app_name>                     # 特定アプリで開く
 ```
 
-エクスポート形式の特徴：
-
-1. JSON形式
-   - データベースとページの完全な情報を含む
-   - Notionの生のデータ構造を保持
-   - プログラムでの再利用に適している
-
-2. CSV形式
-   - シンプルな表形式でデータを表示
-   - スプレッドシートでの利用に適している
-   - 日付とタイトルの基本情報を含む
-
-3. Markdown形式
-   - テーブル形式で見やすく表示
-   - ドキュメントへの埋め込みに適している
-   - GitHubなどでの表示に適している
-
-使用例：
+### 7. user - ユーザー情報
 
 ```bash
-# データベースを選択してCSVとしてエクスポート
-noti database export $(noti database list) -f csv > database.csv
-
-# 複数のデータベースをJSONとしてエクスポート
-for id in $(noti database list); do
-  noti database export $id -o "${id}.json"
-done
+noti user                            # ユーザー情報表示
+noti user --json                     # JSON形式で表示
 ```
 
-### 検索
+## オプション
+
+以下のオプションは全てのコマンドで使用可能です：
 
 ```bash
-# インタラクティブな検索（fuzzy finder）
-noti search
-
-# キーワードで検索
-noti search "検索キーワード"
-
-# 親ページ/データベース配下のみ検索
-noti search "検索キーワード" -p <parent_id>
-
-# 検索結果の件数を制限（デフォルト: 100）
-noti search "検索キーワード" --limit 10
-
-# JSON形式で結果を出力
-noti search "検索キーワード" --json
-```
-
-検索機能の特徴：
-
-- インタラクティブなfuzzy検索UI（キーワード未指定時）
-- 検索結果は最大50文字でトリミング
-- データベースとページの両方を検索
-- 選択したアイテムのIDを出力（他のコマンドとパイプで連携可能）
-
-使用例：
-
-```bash
-# 検索して選択したページをブラウザで開く
-noti search | xargs noti open
-
-# 検索して選択したページの内容を取得
-noti search | xargs noti page get
-```
-
-### エイリアス管理
-
-頻繁にアクセスするページやデータベースにエイリアスを設定できます。
-エイリアスを設定すると、長いページIDやURLの代わりに短い名前で参照できます。
-
-```bash
-# エイリアスの追加
-noti alias add <alias_name> <page_id_or_url>
-
-# エイリアスの削除
-noti alias remove <alias_name>
-
-# エイリアス一覧の表示
-noti alias list
-
-# JSON形式でエイリアス一覧を表示
-noti alias list --json
-```
-
-エイリアスの使用例：
-
-```bash
-# エイリアスの設定
-noti alias add daily-notes f123456789...
-
-# エイリアスを使用してページを開く
-noti open daily-notes
-
-# エイリアスを使用してページを取得
-noti page get daily-notes
-```
-
-エイリアスは`~/.config/noti/aliases.json`に保存され、全てのコマンドで使用できます。
-
-### ブラウザで開く
-
-```bash
-# ページやデータベースをブラウザで開く
-noti open <page_id_or_url_or_alias>
-```
-
-`open`コマンドは、OSに応じて適切なブラウザを自動的に選択します：
-
-- macOS: `open`コマンド
-- Linux: `xdg-open`コマンド
-- Windows: `start`コマンド
-
-### ユーザー情報の取得
-
-```bash
-# 現在のユーザー情報を表示
-noti user
-
-# JSON形式で表示
-noti user --json
-```
-
-表示される情報：
-
-- ユーザーID
-- 名前
-- アカウントタイプ
-- メールアドレス（存在する場合）
-- アバターURL（存在する場合）
-
-出力例：
-
-```
-ID: user_xxxxxxxxxxxx
-名前: 山田太郎
-タイプ: person
-メール: yamada@example.com
-アバター: https://example.com/avatar.png
+-d, --debug                          # デバッグモード
+-h, --help                          # ヘルプ表示
+-v, --version                       # バージョン表示
+--format <format>                   # 出力形式指定（json/markdown）
+-o, --output <file>                 # 出力先ファイル指定
 ```
 
 ## デバッグモード
@@ -461,3 +222,92 @@ MIT License
 ## 仕様
 
 詳細な仕様については[spec.md](spec.md)を参照してください。
+
+## 高度な使用方法
+
+### パイプラインの活用
+
+```bash
+# 検索結果をページ取得にパイプ
+noti search "会議" | xargs -I {} noti page get {}
+
+# データベース一覧から複数のエクスポート
+noti database list | xargs -I {} noti database export {} -f csv -o {}.csv
+
+# エイリアスを使ったバッチ処理
+noti alias list --json | jq -r '.[] | .id' | xargs -I {} noti page get {}
+```
+
+### シェルスクリプトとの連携
+
+```bash
+#!/bin/bash
+# 日次レポートの自動作成
+TODAY=$(date +%Y-%m-%d)
+cat << EOF > report.md
+# 日次レポート ${TODAY}
+## 概要
+- 作成日: ${TODAY}
+- 作成者: $(noti user | grep '名前' | cut -d: -f2)
+EOF
+
+noti page create <parent_id> report.md -t "日次レポート ${TODAY}"
+```
+
+### エラー対処方法
+
+よくあるエラーとその対処方法：
+
+1. 認証エラー
+
+```bash
+Error: Authentication failed
+→ noti configure で正しいトークンを設定
+
+Error: Token not found
+→ 環境変数 NOTION_TOKEN を設定するか、configure を実行
+```
+
+2. 権限エラー
+
+```bash
+Error: Permission denied
+→ Notionの統合設定でページ/データベースへのアクセスを許可
+
+Error: Resource not found
+→ ページ/データベースが存在するか確認し、アクセス権限を確認
+```
+
+3. 入力形式エラー
+
+```bash
+Error: Invalid page ID format
+→ 32文字の16進数IDまたは有効なNotionのURLを指定
+
+Error: Invalid JSON format
+→ JSONファイルの形式を確認（特にカンマの位置やクォート）
+```
+
+### 設定ファイルのカスタマイズ
+
+`~/.config/noti/config.json`:
+
+```json
+{
+  "token": "secret_...",
+  "default_format": "markdown",
+  "editor": "vim",
+  "browser": "firefox",
+  "debug": false
+}
+```
+
+`~/.config/noti/aliases.json`:
+
+```json
+{
+  "daily": "page_id_for_daily_notes",
+  "tasks": "database_id_for_tasks",
+  "team": "page_id_for_team_space"
+}
+```
