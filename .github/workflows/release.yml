@@ -55,13 +55,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            target: linux
+            target: x86_64-unknown-linux-gnu
             asset_name: noti-linux
           - os: macos-latest
-            target: macos
+            target: x86_64-apple-darwin
             asset_name: noti-macos
           - os: windows-latest
-            target: windows
+            target: x86_64-pc-windows-msvc
             asset_name: noti-windows.exe
     runs-on: ${{ matrix.os }}
     steps:
