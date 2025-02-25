@@ -21,9 +21,4 @@ const command = new Command()
   .command('database', databaseCommand)
   .command('open', openCommand);
 
-if (Deno.args.length === 0) {
-  command.showHelp();
-  Deno.exit(0);
-}
-
 await command.parse(Deno.args);
