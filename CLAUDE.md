@@ -1,6 +1,7 @@
 # CLAUDE.md - noti project guidelines
 
 ## Build & Development Commands
+
 - `deno task dev` - Run with watch mode
 - `deno task test` - Run unit tests
 - `deno task test:watch` - Watch unit tests
@@ -11,6 +12,7 @@
 - `deno test -A path/to/specific/test.ts` - Run specific test
 
 ## Code Style Guidelines
+
 - **Formatting**: 2 spaces indentation, 80 char line width, single quotes
 - **Error Handling**: Use the ErrorHandler class with context strings
 - **Logging**: Use the Logger singleton (info/error/debug/success methods)
@@ -21,4 +23,5 @@
 - **File Structure**: Commands in src/commands/, utilities in src/lib/
 
 ## Documentation
+
 Japanese is the primary language for user-facing documentation and error messages

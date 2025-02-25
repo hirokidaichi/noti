@@ -14,4 +14,4 @@ export interface Config {
  */
 export interface Aliases {
   [key: string]: string;
-} 
+}

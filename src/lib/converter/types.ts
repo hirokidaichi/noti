@@ -1,15 +1,15 @@
 // Notionのブロックタイプの定義
 export type NotionBlockType =
-  | "paragraph"
-  | "heading_1"
-  | "heading_2"
-  | "heading_3"
-  | "bulleted_list_item"
-  | "numbered_list_item"
-  | "to_do"
-  | "quote"
-  | "code"
-  | "image";
+  | 'paragraph'
+  | 'heading_1'
+  | 'heading_2'
+  | 'heading_3'
+  | 'bulleted_list_item'
+  | 'numbered_list_item'
+  | 'to_do'
+  | 'quote'
+  | 'code'
+  | 'image';
 
 // Notionのリッチテキスト要素の定義
 export interface NotionRichText {
@@ -39,7 +39,7 @@ export interface NotionBlock {
 
 // パラグラフブロック
 export interface NotionParagraphBlock extends NotionBlock {
-  type: "paragraph";
+  type: 'paragraph';
   paragraph: {
     rich_text: NotionRichText[];
   };
@@ -47,21 +47,21 @@ export interface NotionParagraphBlock extends NotionBlock {
 
 // 見出しブロック
 export interface NotionHeading1Block extends NotionBlock {
-  type: "heading_1";
+  type: 'heading_1';
   heading_1: {
     rich_text: NotionRichText[];
   };
 }
 
 export interface NotionHeading2Block extends NotionBlock {
-  type: "heading_2";
+  type: 'heading_2';
   heading_2: {
     rich_text: NotionRichText[];
   };
 }
 
 export interface NotionHeading3Block extends NotionBlock {
-  type: "heading_3";
+  type: 'heading_3';
   heading_3: {
     rich_text: NotionRichText[];
   };
@@ -69,14 +69,14 @@ export interface NotionHeading3Block extends NotionBlock {
 
 // リストアイテムブロック
 export interface NotionBulletedListItemBlock extends NotionBlock {
-  type: "bulleted_list_item";
+  type: 'bulleted_list_item';
   bulleted_list_item: {
     rich_text: NotionRichText[];
   };
 }
 
 export interface NotionNumberedListItemBlock extends NotionBlock {
-  type: "numbered_list_item";
+  type: 'numbered_list_item';
   numbered_list_item: {
     rich_text: NotionRichText[];
   };
@@ -84,7 +84,7 @@ export interface NotionNumberedListItemBlock extends NotionBlock {
 
 // コードブロック
 export interface NotionCodeBlock extends NotionBlock {
-  type: "code";
+  type: 'code';
   code: {
     rich_text: NotionRichText[];
     language: string;
@@ -93,7 +93,7 @@ export interface NotionCodeBlock extends NotionBlock {
 
 // 引用ブロック
 export interface NotionQuoteBlock extends NotionBlock {
-  type: "quote";
+  type: 'quote';
   quote: {
     rich_text: NotionRichText[];
   };
@@ -101,7 +101,7 @@ export interface NotionQuoteBlock extends NotionBlock {
 
 // TODOブロック
 export interface NotionTodoBlock extends NotionBlock {
-  type: "to_do";
+  type: 'to_do';
   to_do: {
     rich_text: NotionRichText[];
     checked: boolean;
@@ -110,9 +110,9 @@ export interface NotionTodoBlock extends NotionBlock {
 
 // 画像ブロック
 export interface NotionImageBlock extends NotionBlock {
-  type: "image";
+  type: 'image';
   image: {
-    type: "external";
+    type: 'external';
     external: {
       url: string;
     };

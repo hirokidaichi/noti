@@ -20,7 +20,7 @@ jobs:
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: "1.41.0"
+          deno-version: '1.41.0'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -67,4 +67,4 @@ jobs:
             dist/noti-linux
             dist/noti-macos
             dist/noti-macos-arm64
-            dist/noti-windows.exe 
+            dist/noti-windows.exe

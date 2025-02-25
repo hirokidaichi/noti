@@ -1,163 +1,211 @@
-import { assertEquals } from "https://deno.land/std@0.208.0/assert/mod.ts";
-import { BlockToMarkdown } from "./block-to-markdown.ts";
-import { NotionBlocks } from "./types.ts";
+import { assertEquals } from 'https://deno.land/std@0.208.0/assert/mod.ts';
+import { BlockToMarkdown } from './block-to-markdown.ts';
+import { NotionBlocks } from './types.ts';
 
-Deno.test("BlockToMarkdown - パラグラフの変換", () => {
+Deno.test('BlockToMarkdown - パラグラフの変換', () => {
   const converter = new BlockToMarkdown();
   const block: NotionBlocks = {
-    type: "paragraph",
+    type: 'paragraph',
     paragraph: {
       rich_text: [
         {
-          type: "text",
+          type: 'text',
           text: {
-            content: "これはテストです。",
+            content: 'これはテストです。',
           },
-          plain_text: "これはテストです。"
+          plain_text: 'これはテストです。',
         },
       ],
     },
   };
 
   const result = converter.convert([block]);
-  assertEquals(result, "これはテストです。\n\n");
+  assertEquals(result, 'これはテストです。\n\n');
 });
 
-Deno.test("BlockToMarkdown - 見出しの変換", () => {
+Deno.test('BlockToMarkdown - 見出しの変換', () => {
   const converter = new BlockToMarkdown();
   const blocks: NotionBlocks[] = [
     {
-      type: "heading_1",
+      type: 'heading_1',
       heading_1: {
-        rich_text: [{ type: "text", text: { content: "見出し1" }, plain_text: "見出し1" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: '見出し1' },
+          plain_text: '見出し1',
+        }],
       },
     },
     {
-      type: "heading_2",
+      type: 'heading_2',
       heading_2: {
-        rich_text: [{ type: "text", text: { content: "見出し2" }, plain_text: "見出し2" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: '見出し2' },
+          plain_text: '見出し2',
+        }],
       },
     },
     {
-      type: "heading_3",
+      type: 'heading_3',
       heading_3: {
-        rich_text: [{ type: "text", text: { content: "見出し3" }, plain_text: "見出し3" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: '見出し3' },
+          plain_text: '見出し3',
+        }],
       },
     },
   ];
 
   const result = converter.convert(blocks);
-  assertEquals(result, "# 見出し1\n\n## 見出し2\n\n### 見出し3\n\n");
+  assertEquals(result, '# 見出し1\n\n## 見出し2\n\n### 見出し3\n\n');
 });
 
-Deno.test("BlockToMarkdown - リストの変換", () => {
+Deno.test('BlockToMarkdown - リストの変換', () => {
   const converter = new BlockToMarkdown();
   const blocks: NotionBlocks[] = [
     {
-      type: "bulleted_list_item",
+      type: 'bulleted_list_item',
       bulleted_list_item: {
-        rich_text: [{ type: "text", text: { content: "箇条書き1" }, plain_text: "箇条書き1" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: '箇条書き1' },
+          plain_text: '箇条書き1',
+        }],
       },
     },
     {
-      type: "numbered_list_item",
+      type: 'numbered_list_item',
       numbered_list_item: {
-        rich_text: [{ type: "text", text: { content: "番号付き1" }, plain_text: "番号付き1" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: '番号付き1' },
+          plain_text: '番号付き1',
+        }],
       },
     },
   ];
 
   const result = converter.convert(blocks);
-  assertEquals(result, "- 箇条書き1\n1. 番号付き1\n\n");
+  assertEquals(result, '- 箇条書き1\n1. 番号付き1\n\n');
 });
 
-Deno.test("BlockToMarkdown - コードブロックの変換", () => {
+Deno.test('BlockToMarkdown - コードブロックの変換', () => {
   const converter = new BlockToMarkdown();
   const block: NotionBlocks = {
-    type: "code",
+    type: 'code',
     code: {
-      language: "typescript",
+      language: 'typescript',
       rich_text: [
         {
-          type: "text",
+          type: 'text',
           text: {
-            content: "const x = 1;",
+            content: 'const x = 1;',
           },
-          plain_text: "const x = 1;"
+          plain_text: 'const x = 1;',
         },
       ],
     },
   };
 
   const result = converter.convert([block]);
-  assertEquals(result, "```typescript\nconst x = 1;\n```\n\n");
+  assertEquals(result, '```typescript\nconst x = 1;\n```\n\n');
 });
 
-Deno.test("BlockToMarkdown - 引用の変換", () => {
+Deno.test('BlockToMarkdown - 引用の変換', () => {
   const converter = new BlockToMarkdown();
   const block: NotionBlocks = {
-    type: "quote",
+    type: 'quote',
     quote: {
       rich_text: [
         {
-          type: "text",
+          type: 'text',
           text: {
-            content: "これは引用です",
+            content: 'これは引用です',
           },
-          plain_text: "これは引用です"
+          plain_text: 'これは引用です',
         },
       ],
     },
   };
 
   const result = converter.convert([block]);
-  assertEquals(result, "> これは引用です\n\n");
+  assertEquals(result, '> これは引用です\n\n');
 });
 
-Deno.test("BlockToMarkdown - 複合的なブロックの変換", () => {
+Deno.test('BlockToMarkdown - 複合的なブロックの変換', () => {
   const converter = new BlockToMarkdown();
   const blocks: NotionBlocks[] = [
     {
-      type: "heading_1",
+      type: 'heading_1',
       heading_1: {
-        rich_text: [{ type: "text", text: { content: "タイトル" }, plain_text: "タイトル" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: 'タイトル' },
+          plain_text: 'タイトル',
+        }],
       },
     },
     {
-      type: "paragraph",
+      type: 'paragraph',
       paragraph: {
-        rich_text: [{ type: "text", text: { content: "これは本文です。" }, plain_text: "これは本文です。" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: 'これは本文です。' },
+          plain_text: 'これは本文です。',
+        }],
       },
     },
     {
-      type: "heading_2",
+      type: 'heading_2',
       heading_2: {
-        rich_text: [{ type: "text", text: { content: "セクション1" }, plain_text: "セクション1" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: 'セクション1' },
+          plain_text: 'セクション1',
+        }],
       },
     },
     {
-      type: "bulleted_list_item",
+      type: 'bulleted_list_item',
       bulleted_list_item: {
-        rich_text: [{ type: "text", text: { content: "リスト1" }, plain_text: "リスト1" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: 'リスト1' },
+          plain_text: 'リスト1',
+        }],
       },
     },
     {
-      type: "bulleted_list_item",
+      type: 'bulleted_list_item',
       bulleted_list_item: {
-        rich_text: [{ type: "text", text: { content: "リスト2" }, plain_text: "リスト2" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: 'リスト2' },
+          plain_text: 'リスト2',
+        }],
       },
     },
     {
-      type: "code",
+      type: 'code',
       code: {
-        language: "typescript",
-        rich_text: [{ type: "text", text: { content: 'console.log("Hello");' }, plain_text: 'console.log("Hello");' }],
+        language: 'typescript',
+        rich_text: [{
+          type: 'text',
+          text: { content: 'console.log("Hello");' },
+          plain_text: 'console.log("Hello");',
+        }],
       },
     },
     {
-      type: "quote",
+      type: 'quote',
       quote: {
-        rich_text: [{ type: "text", text: { content: "引用文" }, plain_text: "引用文" }],
+        rich_text: [{
+          type: 'text',
+          text: { content: '引用文' },
+          plain_text: '引用文',
+        }],
       },
     },
   ];

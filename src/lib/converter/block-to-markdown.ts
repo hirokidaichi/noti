@@ -1,16 +1,16 @@
 import {
   NotionBlocks,
-  NotionRichText,
-  NotionParagraphBlock,
+  NotionBulletedListItemBlock,
+  NotionCodeBlock,
   NotionHeading1Block,
   NotionHeading2Block,
   NotionHeading3Block,
-  NotionBulletedListItemBlock,
   NotionNumberedListItemBlock,
-  NotionCodeBlock,
+  NotionParagraphBlock,
   NotionQuoteBlock,
+  NotionRichText,
   NotionTodoBlock,
-} from "./types.ts";
+} from './types.ts';
 
 // Notionプロパティの型定義
 interface NotionProperty {
@@ -23,7 +23,7 @@ interface NotionProperty {
 
 export class BlockToMarkdown {
   private convertRichText(richText: NotionRichText[]): string {
-    return richText.map((text) => text.text.content).join("");
+    return richText.map((text) => text.text.content).join('');
   }
 
   private convertParagraph(block: NotionParagraphBlock): string {
@@ -61,20 +61,23 @@ export class BlockToMarkdown {
   }
 
   convert(blocks: NotionBlocks[]): string {
-    let markdown = "";
+    let markdown = '';
     for (let i = 0; i < blocks.length; i++) {
       const block = blocks[i];
       const nextBlock = blocks[i + 1];
-      
+
       // 現在のブロックを変換
       const converted = this.convertBlock(block);
-      
+
       // リストアイテムの場合、次のブロックがリストでなければ改行を追加
       if (
-        (block.type === "bulleted_list_item" || block.type === "numbered_list_item") &&
-        (!nextBlock || (nextBlock.type !== "bulleted_list_item" && nextBlock.type !== "numbered_list_item"))
+        (block.type === 'bulleted_list_item' ||
+          block.type === 'numbered_list_item') &&
+        (!nextBlock ||
+          (nextBlock.type !== 'bulleted_list_item' &&
+            nextBlock.type !== 'numbered_list_item'))
       ) {
-        markdown += converted + "\n";
+        markdown += converted + '\n';
       } else {
         markdown += converted;
       }
@@ -83,20 +86,22 @@ export class BlockToMarkdown {
   }
 
   convertProperties(properties: Record<string, NotionProperty>): string {
-    let markdown = "";
-    
+    let markdown = '';
+
     for (const [key, value] of Object.entries(properties)) {
       switch (value.type) {
-        case "title":
-          markdown += `# ${value.title?.[0]?.plain_text || ""}\n\n`;
+        case 'title':
+          markdown += `# ${value.title?.[0]?.plain_text || ''}\n\n`;
           break;
-        case "rich_text":
-          markdown += `**${key}**: ${value.rich_text?.[0]?.plain_text || ""}\n\n`;
+        case 'rich_text':
+          markdown += `**${key}**: ${
+            value.rich_text?.[0]?.plain_text || ''
+          }\n\n`;
           break;
-        case "date":
-          markdown += `**${key}**: ${value.date?.start || ""}\n\n`;
+        case 'date':
+          markdown += `**${key}**: ${value.date?.start || ''}\n\n`;
           break;
-        case "url":
+        case 'url':
           markdown += `**${key}**: [${value.url}](${value.url})\n\n`;
           break;
         default:
@@ -104,39 +109,40 @@ export class BlockToMarkdown {
           break;
       }
     }
-    
+
     return markdown;
   }
 
   private convertBlock(block: NotionBlocks): string {
     switch (block.type) {
-      case "paragraph":
+      case 'paragraph':
         return this.convertParagraph(block);
-      case "heading_1":
+      case 'heading_1':
         return this.convertHeading1(block);
-      case "heading_2":
+      case 'heading_2':
         return this.convertHeading2(block);
-      case "heading_3":
+      case 'heading_3':
         return this.convertHeading3(block);
-      case "bulleted_list_item":
+      case 'bulleted_list_item':
         return this.convertBulletedListItem(block);
-      case "numbered_list_item":
+      case 'numbered_list_item':
         return this.convertNumberedListItem(block);
-      case "to_do":
+      case 'to_do':
         return this.convertTodo(block);
-      case "code":
+      case 'code':
         return this.convertCode(block);
-      case "quote":
+      case 'quote':
         return this.convertQuote(block);
       default:
-        return "";
+        return '';
     }
   }
 
   private convertTodo(block: NotionTodoBlock): string {
-    const checked = block.to_do.checked ? "x" : " ";
+    const checked = block.to_do.checked ? 'x' : ' ';
     return `- [${checked}] ` + block.to_do.rich_text
       .map((text: NotionRichText) => text.plain_text)
-      .join("") + "\n";
+      .join('') +
+      '\n';
   }
 }

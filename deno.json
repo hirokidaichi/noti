@@ -16,7 +16,7 @@
     "install": "deno install -A --global -n noti --config deno.json src/main.ts",
     "clean": "rm -rf dist",
     "noti": "deno run -A src/main.ts",
-    "all-check": "deno task lint && deno check src/ && deno task test"
+    "check-all": "deno fmt --check && deno lint && deno check src/ && deno test -A src/"
   },
   "imports": {
     "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
@@ -41,19 +41,15 @@
     "@std/dotenv": "jsr:@std/dotenv@^0.225.3"
   },
   "fmt": {
-    "files": {
-      "include": [
-        "src/",
-        "e2e/"
-      ]
-    },
-    "options": {
-      "useTabs": false,
-      "lineWidth": 80,
-      "indentWidth": 2,
-      "singleQuote": true,
-      "proseWrap": "preserve"
-    }
+    "include": [
+      "src/",
+      "e2e/"
+    ],
+    "useTabs": false,
+    "lineWidth": 80,
+    "indentWidth": 2,
+    "singleQuote": true,
+    "proseWrap": "preserve"
   },
   "lint": {
     "include": [

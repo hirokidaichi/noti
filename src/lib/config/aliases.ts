@@ -1,10 +1,10 @@
-import { join } from "jsr:@std/path@^0.220.1";
-import { ensureDir } from "jsr:@std/fs@^0.220.1";
-import { Aliases } from "./types.ts";
+import { join } from 'jsr:@std/path@^0.220.1';
+import { ensureDir } from 'jsr:@std/fs@^0.220.1';
+import { Aliases } from './types.ts';
 
 export class AliasManager {
-  private static ALIAS_DIR = join(Deno.env.get("HOME") || ".", ".noti");
-  private static ALIAS_FILE = join(AliasManager.ALIAS_DIR, "aliases.json");
+  private static ALIAS_DIR = join(Deno.env.get('HOME') || '.', '.noti');
+  private static ALIAS_FILE = join(AliasManager.ALIAS_DIR, 'aliases.json');
 
   constructor(private aliases: Aliases = {}) {}
 
@@ -68,4 +68,4 @@ export class AliasManager {
   async update(): Promise<void> {
     await AliasManager.save(this.aliases);
   }
-} 
+}
