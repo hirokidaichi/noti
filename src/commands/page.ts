@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { confirm } from '@inquirer/prompts';
 import { readFile } from 'node:fs/promises';
 import { basename } from 'node:path';
 import { NotionClient } from '../lib/notion/client.js';
@@ -10,9 +9,6 @@ import type {
   NotionBlocks,
   NotionHeading1Block,
 } from '../lib/converter/types.js';
-import { Logger } from '../lib/logger.js';
-import { NotionPageId } from '../lib/notion/page-uri.js';
-import { AliasManager } from '../lib/config/aliases.js';
 import { PageResolver } from '../lib/command-utils/page-resolver.js';
 import { OutputHandler } from '../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../lib/command-utils/error-handler.js';
@@ -36,21 +32,6 @@ interface NotionPageResponse {
 
 interface CreatePageResponse {
   url: string;
-}
-
-// NotionのURLまたはIDからページIDを抽出する関数
-async function extractPageId(input: string): Promise<string> {
-  // エイリアスの解決を試みる
-  const aliasManager = await AliasManager.load();
-  const resolvedInput = aliasManager.get(input) || input;
-
-  const pageId = NotionPageId.fromString(resolvedInput);
-  if (!pageId) {
-    throw new Error(
-      '無効なページIDまたはURLです。32文字の16進数である必要があります。'
-    );
-  }
-  return pageId.toShortId();
 }
 
 // ページ取得サブコマンド
@@ -132,15 +113,17 @@ const appendSubCommand = new Command('append')
       inputFile: string,
       options: { debug?: boolean }
     ) => {
-      const config = await Config.load();
-      const client = new NotionClient(config);
-      const logger = Logger.getInstance();
-      logger.setDebugMode(!!options.debug);
+      const outputHandler = new OutputHandler({ debug: options.debug });
+      const errorHandler = new ErrorHandler();
+      const pageResolver = await PageResolver.create();
 
-      try {
+      await errorHandler.withErrorHandling(async () => {
+        const config = await Config.load();
+        const client = new NotionClient(config);
+
         // URLまたはIDからページIDを抽出
-        const pageId = await extractPageId(pageIdOrUrl);
-        logger.debug('Extracted Page ID', pageId);
+        const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
+        outputHandler.debug('Extracted Page ID', pageId);
 
         // 入力ファイルの読み込み
         const markdown = await readFile(inputFile, 'utf-8');
@@ -149,17 +132,14 @@ const appendSubCommand = new Command('append')
         const converter = new MarkdownToBlocks();
         const { blocks } = converter.convert(markdown);
 
-        logger.debug('Converted Blocks', blocks);
+        outputHandler.debug('Converted Blocks', blocks);
 
         // ブロックの追加
         const result = await client.appendBlocks(pageId, blocks);
-        logger.debug('API Response', result);
+        outputHandler.debug('API Response', result);
 
-        logger.success('コンテンツを追加しました。');
-      } catch (error) {
-        logger.error('コンテンツの追加に失敗しました', error);
-        process.exit(1);
-      }
+        outputHandler.success('コンテンツを追加しました。');
+      }, 'コンテンツの追加に失敗しました');
     }
   );
 
@@ -176,15 +156,17 @@ const createSubCommand = new Command('create')
       inputFile: string,
       options: { title?: string; debug?: boolean }
     ) => {
-      const config = await Config.load();
-      const client = new NotionClient(config);
-      const logger = Logger.getInstance();
-      logger.setDebugMode(!!options.debug);
+      const outputHandler = new OutputHandler({ debug: options.debug });
+      const errorHandler = new ErrorHandler();
+      const pageResolver = await PageResolver.create();
 
-      try {
+      await errorHandler.withErrorHandling(async () => {
+        const config = await Config.load();
+        const client = new NotionClient(config);
+
         // 親ページIDの抽出
-        const parentId = await extractPageId(parentIdOrUrl);
-        logger.debug('Parent Page ID', parentId);
+        const parentId = await pageResolver.resolvePageId(parentIdOrUrl);
+        outputHandler.debug('Parent Page ID', parentId);
 
         // 入力ファイルの読み込み
         const markdown = await readFile(inputFile, 'utf-8');
@@ -214,8 +196,8 @@ const createSubCommand = new Command('create')
           }
         }
 
-        logger.debug('Title', title);
-        logger.debug('Blocks', blocks);
+        outputHandler.debug('Title', title);
+        outputHandler.debug('Blocks', blocks);
 
         // ページの作成
         const result = (await client.createPage({
@@ -224,12 +206,9 @@ const createSubCommand = new Command('create')
           blocks,
         })) as CreatePageResponse;
 
-        logger.debug('API Response', result);
-        logger.success('ページを作成しました: ' + result.url);
-      } catch (error) {
-        logger.error('ページの作成に失敗しました', error);
-        process.exit(1);
-      }
+        outputHandler.debug('API Response', result);
+        outputHandler.success('ページを作成しました: ' + result.url);
+      }, 'ページの作成に失敗しました');
     }
   );
 
@@ -274,7 +253,7 @@ const removeSubCommand = new Command('remove')
 
         if (!confirmed) {
           outputHandler.info('削除をキャンセルしました');
-          process.exit(0);
+          return;
         }
 
         // ページの削除
@@ -299,15 +278,17 @@ const updateSubCommand = new Command('update')
       inputFile: string,
       options: { title?: string; debug?: boolean; force?: boolean }
     ) => {
-      const config = await Config.load();
-      const client = new NotionClient(config);
-      const logger = Logger.getInstance();
-      logger.setDebugMode(!!options.debug);
+      const outputHandler = new OutputHandler({ debug: options.debug });
+      const errorHandler = new ErrorHandler();
+      const pageResolver = await PageResolver.create();
 
-      try {
+      await errorHandler.withErrorHandling(async () => {
+        const config = await Config.load();
+        const client = new NotionClient(config);
+
         // ページIDの抽出
-        const pageId = await extractPageId(pageIdOrUrl);
-        logger.debug('Page ID', pageId);
+        const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
+        outputHandler.debug('Page ID', pageId);
 
         // 現在のページ情報の取得
         const page = (await client.getPage(pageId)) as NotionPageResponse;
@@ -338,17 +319,17 @@ const updateSubCommand = new Command('update')
           }
         }
 
-        // 確認プロンプト（--forceオプションがない場合）
-        if (!options.force) {
-          const message =
-            `ページ「${currentTitle}」を更新しますか？` +
-            (title ? `\n新しいタイトル: ${title}` : '');
-          const answer = await confirm({ message });
+        // 確認プロンプト
+        const message =
+          `ページ「${currentTitle}」を更新しますか？` +
+          (title ? `\n新しいタイトル: ${title}` : '');
+        const confirmed = await PromptUtils.confirm(message, {
+          force: options.force,
+        });
 
-          if (!answer) {
-            console.error('更新をキャンセルしました。');
-            process.exit(0);
-          }
+        if (!confirmed) {
+          outputHandler.info('更新をキャンセルしました。');
+          return;
         }
 
         // 既存のブロックを削除
@@ -367,11 +348,8 @@ const updateSubCommand = new Command('update')
           });
         }
 
-        logger.success('ページを更新しました。');
-      } catch (error) {
-        logger.error('ページの更新に失敗しました', error);
-        process.exit(1);
-      }
+        outputHandler.success('ページを更新しました。');
+      }, 'ページの更新に失敗しました');
     }
   );
 

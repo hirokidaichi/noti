@@ -218,6 +218,5 @@ export const importCommand = new Command('import')
       }
     } catch (_error) {
       errorHandler.handleError('エラーが発生しました', 'unknown');
-      process.exit(1);
     }
   });

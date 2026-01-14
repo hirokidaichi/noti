@@ -1,11 +1,11 @@
 import { Command } from 'commander';
-import { confirm } from '@inquirer/prompts';
 import { NotionClient } from '../../lib/notion/client.js';
 import { Config } from '../../lib/config/config.js';
 import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints.js';
 import { OutputHandler } from '../../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
 import { PageResolver } from '../../lib/command-utils/page-resolver.js';
+import { PromptUtils } from '../../lib/command-utils/prompt-utils.js';
 
 export const removeCommand = new Command('remove')
   .description('データベースページを削除')
@@ -38,15 +38,15 @@ export const removeCommand = new Command('remove')
           Object.values(page.properties).find((prop) => prop.type === 'title')
             ?.title?.[0]?.plain_text || 'Untitled';
 
-        // 確認プロンプト（--forceオプションがない場合）
-        if (!options.force) {
-          const answer = await confirm({
-            message: `ページ「${title}」を削除しますか？`,
-          });
-          if (!answer) {
-            outputHandler.info('削除をキャンセルしました');
-            process.exit(0);
-          }
+        // 確認プロンプト
+        const confirmed = await PromptUtils.confirm(
+          `ページ「${title}」を削除しますか？`,
+          { force: options.force }
+        );
+
+        if (!confirmed) {
+          outputHandler.info('削除をキャンセルしました');
+          return;
         }
 
         // ページの削除
