@@ -34,6 +34,7 @@ jobs:
         run: npx vitest run src/ --coverage
 
       - name: Run e2e tests
+        if: ${{ secrets.NOTION_API_KEY != '' }}
         run: npm run e2e
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
