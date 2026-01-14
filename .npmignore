@@ -1,0 +1,29 @@
+# Source files
+src/
+e2e/
+
+# Deno files
+deno.json
+deno.lock
+import_map.json
+
+# Config files
+.prettierrc
+vitest.config.ts
+tsconfig.json
+
+# Test and coverage
+coverage/
+*.test.ts
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.md
+!README.md

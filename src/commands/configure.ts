@@ -1,5 +1,4 @@
 import { Command } from 'commander';
-import { password } from '@inquirer/prompts';
 import { Config } from '../lib/config/config.js';
 import { OutputHandler } from '../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../lib/command-utils/error-handler.js';
@@ -12,28 +11,39 @@ function maskToken(token: string | undefined): string {
 export const configureCommand = new Command('configure')
   .description('Notionの設定を行います')
   .option('-d, --debug', 'デバッグモード')
-  .action(async (options: { debug?: boolean }) => {
-    const outputHandler = new OutputHandler({ debug: options.debug });
-    const errorHandler = new ErrorHandler();
+  .option('-t, --token <token>', 'Notion Integration Token')
+  .option('--show', '現在の設定を表示')
+  .action(
+    async (options: { debug?: boolean; token?: string; show?: boolean }) => {
+      const outputHandler = new OutputHandler({ debug: options.debug });
+      const errorHandler = new ErrorHandler();
 
-    await errorHandler.withErrorHandling(async () => {
-      const config = await Config.load();
-      outputHandler.debug('Current Config:', config);
+      await errorHandler.withErrorHandling(async () => {
+        const config = await Config.load();
+        outputHandler.debug('Current Config:', config);
 
-      if (config.token) {
-        outputHandler.info(`現在のトークン: ${maskToken(config.token)}`);
-      }
+        // 現在の設定を表示
+        if (options.show) {
+          if (config.token) {
+            outputHandler.info(`現在のトークン: ${maskToken(config.token)}`);
+          } else {
+            outputHandler.info('トークンは設定されていません');
+          }
+          return;
+        }
 
-      const token = await password({
-        message: 'Notion Integration Token を入力してください:',
-        mask: '*',
-      });
-
-      if (token) {
-        await Config.update({ apiToken: token });
-        outputHandler.success('設定を保存しました');
-      } else {
-        outputHandler.info('設定をキャンセルしました');
-      }
-    }, '設定の保存に失敗しました');
-  });
+        // トークンの設定
+        if (options.token) {
+          await Config.update({ apiToken: options.token });
+          outputHandler.success('設定を保存しました');
+        } else {
+          outputHandler.error(
+            'トークンを指定してください: noti configure --token <token>'
+          );
+          outputHandler.info(
+            'トークンは https://www.notion.so/my-integrations から取得できます'
+          );
+        }
+      }, '設定の保存に失敗しました');
+    }
+  );

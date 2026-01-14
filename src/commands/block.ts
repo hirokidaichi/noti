@@ -3,7 +3,6 @@ import { NotionClient } from '../lib/notion/client.js';
 import { Config } from '../lib/config/config.js';
 import { OutputHandler } from '../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../lib/command-utils/error-handler.js';
-import { confirm } from '@inquirer/prompts';
 
 export interface BlockObject {
   id: string;
@@ -92,23 +91,17 @@ const deleteCommand = new Command('delete')
       const config = await Config.load();
       const client = new NotionClient(config);
 
+      // -f オプションが必須
+      if (!options.force) {
+        outputHandler.error(
+          '削除を実行するには -f オプションを指定してください'
+        );
+        return;
+      }
+
       // 削除前にブロック情報を取得
       const block = (await client.getBlock(blockId)) as BlockObject;
-      const text = extractBlockText(block);
       outputHandler.debug('Block to delete:', block);
-
-      // 確認
-      if (!options.force) {
-        const confirmed = await confirm({
-          message: `ブロックを削除しますか？\nType: ${block.type}\nContent: ${text.slice(0, 50)}${text.length > 50 ? '...' : ''}`,
-          default: false,
-        });
-
-        if (!confirmed) {
-          console.log('削除をキャンセルしました');
-          return;
-        }
-      }
 
       const result = await client.deleteBlock(blockId);
       outputHandler.debug('Delete result:', result);

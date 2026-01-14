@@ -4,3 +4,4 @@ coverage.lcov .spechistory
 coverage.lcov
 .env
 dist/
+node_modules/

@@ -12,23 +12,8 @@ import type {
 import { PageResolver } from '../lib/command-utils/page-resolver.js';
 import { OutputHandler } from '../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../lib/command-utils/error-handler.js';
-import { PromptUtils } from '../lib/command-utils/prompt-utils.js';
 import { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints.js';
 import { commentCommand } from './page/comment.js';
-
-// APIレスポンス型の定義
-interface NotionPageResponse {
-  properties: Record<
-    string,
-    {
-      type: string;
-      title?: Array<{
-        plain_text: string;
-      }>;
-    }
-  >;
-  url?: string;
-}
 
 interface CreatePageResponse {
   url: string;
@@ -227,6 +212,14 @@ const removeSubCommand = new Command('remove')
       const pageResolver = await PageResolver.create();
 
       await errorHandler.withErrorHandling(async () => {
+        // -f オプションが必須
+        if (!options.force) {
+          outputHandler.error(
+            '削除を実行するには -f オプションを指定してください'
+          );
+          return;
+        }
+
         const config = await Config.load();
         const client = new NotionClient(config);
 
@@ -243,17 +236,6 @@ const removeSubCommand = new Command('remove')
         const title =
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (titleProp as any)?.title?.[0]?.plain_text || 'Untitled';
-
-        // 確認プロンプト
-        const confirmed = await PromptUtils.confirm(
-          `ページ「${title}」を削除しますか？`,
-          { force: options.force }
-        );
-
-        if (!confirmed) {
-          outputHandler.info('削除をキャンセルしました');
-          return;
-        }
 
         // ページの削除
         const result = await client.removePage(pageId);
@@ -282,17 +264,20 @@ const updateSubCommand = new Command('update')
       const pageResolver = await PageResolver.create();
 
       await errorHandler.withErrorHandling(async () => {
+        // -f オプションが必須
+        if (!options.force) {
+          outputHandler.error(
+            '更新を実行するには -f オプションを指定してください'
+          );
+          return;
+        }
+
         const config = await Config.load();
         const client = new NotionClient(config);
 
         // ページIDの抽出
         const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
         outputHandler.debug('Page ID', pageId);
-
-        // 現在のページ情報の取得
-        const page = (await client.getPage(pageId)) as NotionPageResponse;
-        const currentTitle =
-          page.properties?.title?.title?.[0]?.plain_text || 'Untitled';
 
         // 入力ファイルの読み込み
         const markdown = await readFile(inputFile, 'utf-8');
@@ -316,19 +301,6 @@ const updateSubCommand = new Command('update')
             // タイトルとして使用したheading_1は削除
             blocks.splice(blocks.indexOf(firstHeading), 1);
           }
-        }
-
-        // 確認プロンプト
-        const message =
-          `ページ「${currentTitle}」を更新しますか？` +
-          (title ? `\n新しいタイトル: ${title}` : '');
-        const confirmed = await PromptUtils.confirm(message, {
-          force: options.force,
-        });
-
-        if (!confirmed) {
-          outputHandler.info('更新をキャンセルしました。');
-          return;
         }
 
         // 既存のブロックを削除

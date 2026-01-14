@@ -9,6 +9,7 @@ import { userCommand } from './commands/user.js';
 import { databaseCommand } from './commands/database.js';
 import { openCommand } from './commands/open.js';
 import { blockCommand } from './commands/block.js';
+import { setupSkillsCommand } from './commands/setup-skills.js';
 import { Config } from './lib/config/config.js';
 
 const program = new Command();
@@ -24,7 +25,8 @@ program
   .addCommand(searchCommand)
   .addCommand(userCommand)
   .addCommand(databaseCommand)
-  .addCommand(openCommand);
+  .addCommand(openCommand)
+  .addCommand(setupSkillsCommand);
 
 /**
  * 設定状態を確認し、適切な処理を行う

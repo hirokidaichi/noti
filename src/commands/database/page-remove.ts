@@ -5,13 +5,12 @@ import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoint
 import { OutputHandler } from '../../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
 import { PageResolver } from '../../lib/command-utils/page-resolver.js';
-import { PromptUtils } from '../../lib/command-utils/prompt-utils.js';
 
 export const removeCommand = new Command('remove')
   .description('データベースページを削除')
   .argument('<database_page_id_or_url>', 'データベースページIDまたはURL')
   .option('-d, --debug', 'デバッグモード')
-  .option('-f, --force', '確認なしで削除')
+  .option('-f, --force', '削除を実行')
   .action(
     async (
       databasePageIdOrUrl: string,
@@ -22,6 +21,14 @@ export const removeCommand = new Command('remove')
       const pageResolver = await PageResolver.create();
 
       await errorHandler.withErrorHandling(async () => {
+        // -f オプションが必須
+        if (!options.force) {
+          outputHandler.error(
+            '削除を実行するには -f オプションを指定してください'
+          );
+          return;
+        }
+
         const config = await Config.load();
         const client = new NotionClient(config);
 
@@ -37,17 +44,6 @@ export const removeCommand = new Command('remove')
         const title =
           Object.values(page.properties).find((prop) => prop.type === 'title')
             ?.title?.[0]?.plain_text || 'Untitled';
-
-        // 確認プロンプト
-        const confirmed = await PromptUtils.confirm(
-          `ページ「${title}」を削除しますか？`,
-          { force: options.force }
-        );
-
-        if (!confirmed) {
-          outputHandler.info('削除をキャンセルしました');
-          return;
-        }
 
         // ページの削除
         await client.removePage(pageId);

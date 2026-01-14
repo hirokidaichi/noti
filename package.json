@@ -1,0 +1,60 @@
+{
+  "name": "noti",
+  "version": "0.1.0",
+  "description": "Notion CLI - A command-line interface for Notion",
+  "type": "module",
+  "bin": {
+    "noti": "./dist/main.js"
+  },
+  "scripts": {
+    "dev": "tsx --watch src/main.ts",
+    "build": "tsc",
+    "test": "vitest run src/",
+    "test:watch": "vitest src/",
+    "e2e": "vitest run e2e/",
+    "e2e:watch": "vitest e2e/",
+    "lint": "eslint 'src/**/*.ts' 'e2e/**/*.ts'",
+    "fmt": "prettier --write 'src/**/*.ts' 'e2e/**/*.ts'",
+    "fmt:check": "prettier --check 'src/**/*.ts' 'e2e/**/*.ts'",
+    "all-check": "npm run fmt:check && npm run lint && npm run build && npm run test",
+    "copy-skills": "cp -r .claude/skills/noti skills/",
+    "prepublishOnly": "npm run copy-skills && npm run build"
+  },
+  "files": [
+    "dist",
+    "skills"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "notion",
+    "cli",
+    "notion-api",
+    "productivity"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@inquirer/prompts": "^7.2.0",
+    "@notionhq/client": "^2.2.16",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "csv-parse": "^5.6.0",
+    "csv-stringify": "^6.5.0",
+    "cli-table3": "^0.6.5",
+    "dotenv": "^16.4.5",
+    "marked": "^9.1.6",
+    "html-entities": "^2.5.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.2",
+    "tsx": "^4.15.6",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}

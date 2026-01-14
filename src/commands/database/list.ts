@@ -1,9 +1,15 @@
 import { Command } from 'commander';
-import { select } from '@inquirer/prompts';
 import { NotionClient } from '../../lib/notion/client.js';
 import { Config } from '../../lib/config/config.js';
 import { OutputHandler } from '../../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
+
+interface DatabaseItem {
+  id: string;
+  title: string;
+  type: string;
+  url: string;
+}
 
 export const listCommand = new Command('list')
   .description('データベース一覧を表示')
@@ -29,37 +35,26 @@ export const listCommand = new Command('list')
           return;
         }
 
+        // 一覧表示用のアイテムを整形
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const items: DatabaseItem[] = results.results.map((db: any) => ({
+          id: db.id,
+          title: db.title?.[0]?.plain_text || 'Untitled',
+          type: 'database',
+          url: db.url,
+        }));
+
         if (options.json) {
-          await outputHandler.handleOutput(
-            JSON.stringify(results.results, null, 2),
-            { json: true }
-          );
+          await outputHandler.handleOutput(JSON.stringify(items, null, 2), {
+            json: true,
+          });
           return;
         }
 
-        // インタラクティブ表示用のアイテムを整形
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const items = results.results.map((db: any) => ({
-          id: db.id,
-          title: db.title?.[0]?.plain_text || 'Untitled',
-          url: db.url,
-          created_time: db.created_time,
-          last_edited_time: db.last_edited_time,
-          type: 'database',
-        }));
-
-        // インタラクティブ選択
-        const choices = items.map((item) => ({
-          name: `🗃️ ${item.title}`,
-          value: item.id,
-        }));
-
-        const selectedId = await select({
-          message: 'データベースを選択してください:',
-          choices,
-        });
-
-        console.log(selectedId);
+        // リスト形式で出力（searchコマンドと同様）
+        for (const item of items) {
+          console.log(`${item.id}\tdatabase\t${item.title}`);
+        }
       }, 'データベース一覧の取得中にエラーが発生しました');
     }
   );
