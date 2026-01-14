@@ -502,15 +502,46 @@ export class NotionClient {
       targetDatabase
     ) as CreatePageParameters['properties'];
 
-    // タイトルプロパティが必須なので、存在しない場合は追加
-    const titleProperty = compatibleProperties.Name as {
-      title?: Array<{ type: 'text'; text: { content: string } }>;
-    };
-    if (!titleProperty?.title) {
-      compatibleProperties.Name = {
-        type: 'title',
-        title: [{ type: 'text', text: { content: 'Untitled' } }],
-      };
+    // タイトルプロパティを元ページからコピー
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sourceProperties = (sourcePage as any).properties;
+    // タイトルプロパティを探す（通常は'Name'または'title'タイプのプロパティ）
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sourceTitleEntry = Object.entries(sourceProperties).find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ([, value]: [string, any]) => value.type === 'title'
+    );
+    if (sourceTitleEntry) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [_titleKey, titleValue] = sourceTitleEntry as [string, any];
+      // ターゲットDBのタイトルプロパティ名を探す
+      const targetTitleKey = Object.entries(targetDatabase.properties).find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ([, schema]: [string, any]) => schema.type === 'title'
+      )?.[0];
+      if (targetTitleKey && titleValue.title) {
+        compatibleProperties[targetTitleKey] = {
+          title: titleValue.title,
+        };
+      }
+    }
+
+    // タイトルプロパティが必須なので、存在しない場合はデフォルト値を追加
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const hasTitle = Object.values(compatibleProperties).some(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (prop: any) => prop?.title !== undefined
+    );
+    if (!hasTitle) {
+      const targetTitleKey = Object.entries(targetDatabase.properties).find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ([, schema]: [string, any]) => schema.type === 'title'
+      )?.[0];
+      if (targetTitleKey) {
+        compatibleProperties[targetTitleKey] = {
+          title: [{ type: 'text', text: { content: 'Untitled' } }],
+        };
+      }
     }
 
     // 4. 新しいページを作成

@@ -25,7 +25,7 @@ export async function setupTestDatabase(client: NotionClient): Promise<string> {
 export async function setupConfigure(): Promise<void> {
   const config = await loadTestConfig();
   try {
-    execSync(`echo "${config.NOTION_TOKEN}" | node dist/main.js configure`, {
+    execSync(`node dist/main.js configure --token '${config.NOTION_TOKEN}'`, {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'pipe'],
     });
