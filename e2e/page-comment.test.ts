@@ -1,81 +1,78 @@
-import { assertEquals, assertExists, assertStringIncludes } from '@std/assert';
-import { loadTestConfig, runCommand, setupConfigure } from './setup.ts';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { loadTestConfig, runCommand, setupConfigure } from './setup.js';
 
 // コメント機能のE2Eテスト
-Deno.test({
-  name: 'Page Comment E2E Tests',
-  async fn(t) {
-    const config = await loadTestConfig();
+describe('Page Comment E2E Tests', () => {
+  let threadId: string | undefined;
+
+  beforeAll(async () => {
+    await loadTestConfig();
     await setupConfigure();
+  });
 
-    let threadId: string | undefined;
+  it('should add comment to page', async () => {
+    const config = await loadTestConfig();
+    const testComment = 'Test comment ' + new Date().toISOString();
+    const { success, output } = await runCommand(
+      `page comment add ${config.NOTION_ROOT_ID} "${testComment}"`
+    );
 
-    await t.step('should add comment to page', async () => {
-      const testComment = 'Test comment ' + new Date().toISOString();
-      const { success, output } = await runCommand(
-        `page comment add ${config.NOTION_ROOT_ID} "${testComment}"`,
-      );
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
 
-      assertEquals(success, true);
-      assertExists(output);
-
-      // スレッドIDを抽出
-      const match = output.match(/スレッドID: ([a-f0-9-]+)/);
-      if (match && match[1]) {
-        threadId = match[1];
-        console.log(`Captured thread ID: ${threadId}`);
-      }
-    });
-
-    await t.step('should get comments from page', async () => {
-      const { success, output } = await runCommand(
-        `page comment get ${config.NOTION_ROOT_ID} -f json`,
-      );
-
-      assertEquals(success, true);
-      assertExists(output);
-
-      const comments = JSON.parse(output);
-      assertEquals(Array.isArray(comments.results), true);
-      assertTrue(comments.results.length > 0, 'コメントが存在しない');
-    });
-
-    await t.step('should get comments in thread format', async () => {
-      const { success, output } = await runCommand(
-        `page comment get ${config.NOTION_ROOT_ID}`,
-      );
-
-      assertEquals(success, true);
-      assertExists(output);
-    });
-
-    await t.step('should list comment threads', async () => {
-      const { success, output } = await runCommand(
-        `page comment list-threads ${config.NOTION_ROOT_ID}`,
-      );
-
-      assertEquals(success, true);
-      assertExists(output);
-      assertStringIncludes(output, 'コメントスレッドがあります');
-    });
-
-    // スレッドIDが取得できた場合のみ実行
-    if (threadId) {
-      await t.step('should reply to a comment thread', async () => {
-        const replyText = 'Reply to thread ' + new Date().toISOString();
-        const { success, output } = await runCommand(
-          `page comment reply ${config.NOTION_ROOT_ID} ${threadId} "${replyText}"`,
-        );
-
-        assertEquals(success, true);
-        assertStringIncludes(output, 'コメントスレッドに返信しました');
-      });
+    // スレッドIDを抽出
+    const match = output.match(/スレッドID: ([a-f0-9-]+)/);
+    if (match && match[1]) {
+      threadId = match[1];
     }
-  },
-});
+  });
 
-function assertTrue(condition: boolean, message: string) {
-  if (!condition) {
-    throw new Error(message);
-  }
-}
+  it('should get comments from page', async () => {
+    const config = await loadTestConfig();
+    const { success, output } = await runCommand(
+      `page comment get ${config.NOTION_ROOT_ID} -f json`
+    );
+
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
+
+    const comments = JSON.parse(output);
+    expect(Array.isArray(comments.results)).toBe(true);
+    expect(comments.results.length).toBeGreaterThan(0);
+  });
+
+  it('should get comments in thread format', async () => {
+    const config = await loadTestConfig();
+    const { success, output } = await runCommand(
+      `page comment get ${config.NOTION_ROOT_ID}`
+    );
+
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
+  });
+
+  it('should list comment threads', async () => {
+    const config = await loadTestConfig();
+    const { success, output } = await runCommand(
+      `page comment list-threads ${config.NOTION_ROOT_ID}`
+    );
+
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
+    expect(output).toContain('コメントスレッドがあります');
+  });
+
+  it('should reply to a comment thread', async () => {
+    if (!threadId) {
+      return;
+    }
+    const config = await loadTestConfig();
+    const replyText = 'Reply to thread ' + new Date().toISOString();
+    const { success, output } = await runCommand(
+      `page comment reply ${config.NOTION_ROOT_ID} ${threadId} "${replyText}"`
+    );
+
+    expect(success).toBe(true);
+    expect(output).toContain('コメントスレッドに返信しました');
+  });
+});

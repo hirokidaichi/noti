@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  extractPropertyValue,
-  parseFilter,
-  parseSort,
-} from './query.js';
+import { extractPropertyValue, parseFilter, parseSort } from './query.js';
 
 describe('extractPropertyValue', () => {
   it('should extract title text', () => {
@@ -209,23 +205,17 @@ describe('parseSort', () => {
 
   it('should parse ascending sort', () => {
     const result = parseSort('Name:asc', schema);
-    expect(result).toEqual([
-      { property: 'Name', direction: 'ascending' },
-    ]);
+    expect(result).toEqual([{ property: 'Name', direction: 'ascending' }]);
   });
 
   it('should parse descending sort', () => {
     const result = parseSort('Count:desc', schema);
-    expect(result).toEqual([
-      { property: 'Count', direction: 'descending' },
-    ]);
+    expect(result).toEqual([{ property: 'Count', direction: 'descending' }]);
   });
 
   it('should default to ascending', () => {
     const result = parseSort('Name', schema);
-    expect(result).toEqual([
-      { property: 'Name', direction: 'ascending' },
-    ]);
+    expect(result).toEqual([{ property: 'Name', direction: 'ascending' }]);
   });
 
   it('should parse timestamp sort', () => {

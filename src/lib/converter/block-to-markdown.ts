@@ -10,7 +10,7 @@ import {
   NotionQuoteBlock,
   NotionRichText,
   NotionTodoBlock,
-} from './types.ts';
+} from './types.js';
 
 // Notionプロパティの型定義
 interface NotionProperty {
@@ -140,9 +140,12 @@ export class BlockToMarkdown {
 
   private convertTodo(block: NotionTodoBlock): string {
     const checked = block.to_do.checked ? 'x' : ' ';
-    return `- [${checked}] ` + block.to_do.rich_text
-      .map((text: NotionRichText) => text.plain_text)
-      .join('') +
-      '\n';
+    return (
+      `- [${checked}] ` +
+      block.to_do.rich_text
+        .map((text: NotionRichText) => text.plain_text)
+        .join('') +
+      '\n'
+    );
   }
 }

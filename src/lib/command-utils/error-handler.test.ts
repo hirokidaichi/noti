@@ -1,19 +1,17 @@
-import { assertEquals } from '@std/assert';
-import { assertSpyCall, spy } from '@std/testing/mock';
-import { ErrorHandler } from './error-handler.ts';
-import { Logger } from '../logger.ts';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { ErrorHandler } from './error-handler.js';
+import { Logger } from '../logger.js';
 import { APIErrorCode, APIResponseError } from '@notionhq/client';
 
-Deno.test('ErrorHandler', async (t) => {
+describe('ErrorHandler', () => {
   let errorHandler: ErrorHandler;
-  let originalExit: typeof Deno.exit;
-  const mockDebug = spy();
-  const mockError = spy();
-  const mockSuccess = spy();
-  const mockInfo = spy();
-  const mockSetDebugMode = spy();
+  let originalExit: typeof process.exit;
+  const mockDebug = vi.fn();
+  const mockError = vi.fn();
+  const mockSuccess = vi.fn();
+  const mockInfo = vi.fn();
+  const mockSetDebugMode = vi.fn();
 
-  // 各テストの前に実行
   function setup() {
     // LoggerのgetInstanceをモック
     const mockLogger = Logger.getInstance();
@@ -26,57 +24,61 @@ Deno.test('ErrorHandler', async (t) => {
     });
     Logger.getInstance = () => mockLogger;
 
-    // Deno.exitをモック
-    originalExit = Deno.exit;
-    Deno.exit = (_code?: number): never => {
+    // process.exitをモック
+    originalExit = process.exit;
+    process.exit = ((_code?: number): never => {
       throw new Error('Exit called');
-    };
+    }) as typeof process.exit;
 
     errorHandler = new ErrorHandler();
   }
 
-  // 各テストの後に実行
   function cleanup() {
-    mockDebug.calls.splice(0);
-    mockError.calls.splice(0);
-    mockSuccess.calls.splice(0);
-    mockInfo.calls.splice(0);
-    mockSetDebugMode.calls.splice(0);
-    Deno.exit = originalExit;
+    mockDebug.mockClear();
+    mockError.mockClear();
+    mockSuccess.mockClear();
+    mockInfo.mockClear();
+    mockSetDebugMode.mockClear();
+    process.exit = originalExit;
   }
 
-  await t.step('handleError - エラーメッセージの出力', () => {
+  beforeEach(() => {
     setup();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it('handleError - エラーメッセージの出力', () => {
     const error = new Error('test error');
     const context = 'テストコンテキスト';
     try {
       errorHandler.handleError(error, context);
     } catch {
-      // Deno.exitが呼ばれるため、エラーは無視
+      // process.exitが呼ばれるため、エラーは無視
     }
-    assertSpyCall(mockError, 0, {
-      args: [`${context}: ${error.message}`, error],
-    });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith(
+      `${context}: ${error.message}`,
+      error
+    );
   });
 
-  await t.step('handleError - デバッグモードでのスタックトレース出力', () => {
-    setup();
+  it('handleError - デバッグモードでのスタックトレース出力', () => {
     const error = new Error('test error');
     const context = 'テストコンテキスト';
     try {
       errorHandler.handleError(error, context);
     } catch {
-      // Deno.exitが呼ばれるため、エラーは無視
+      // process.exitが呼ばれるため、エラーは無視
     }
-    assertSpyCall(mockError, 0, {
-      args: [`${context}: ${error.message}`, error],
-    });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith(
+      `${context}: ${error.message}`,
+      error
+    );
   });
 
-  await t.step('handleError - APIエラーの処理', () => {
-    setup();
+  it('handleError - APIエラーの処理', () => {
     const apiError = new APIResponseError({
       code: 'validation_error' as APIErrorCode,
       message: 'Invalid request',
@@ -91,14 +93,13 @@ Deno.test('ErrorHandler', async (t) => {
       // never関数なので必ずエラーになる
     }
 
-    assertSpyCall(mockError, 0, {
-      args: ['テスト操作: APIエラー - validation_error', apiError],
-    });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith(
+      'テスト操作: APIエラー - validation_error',
+      apiError
+    );
   });
 
-  await t.step('handleError - 一般的なエラーの処理', () => {
-    setup();
+  it('handleError - 一般的なエラーの処理', () => {
     const error = new Error('テストエラー');
 
     try {
@@ -107,14 +108,10 @@ Deno.test('ErrorHandler', async (t) => {
       // never関数なので必ずエラーになる
     }
 
-    assertSpyCall(mockError, 0, {
-      args: ['テスト操作: テストエラー', error],
-    });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith('テスト操作: テストエラー', error);
   });
 
-  await t.step('handleError - 文字列エラーの処理', () => {
-    setup();
+  it('handleError - 文字列エラーの処理', () => {
     const error = 'エラー文字列';
 
     try {
@@ -123,14 +120,10 @@ Deno.test('ErrorHandler', async (t) => {
       // never関数なので必ずエラーになる
     }
 
-    assertSpyCall(mockError, 0, {
-      args: ['テスト操作: エラー文字列'],
-    });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith('テスト操作: エラー文字列');
   });
 
-  await t.step('handleError - 不明なエラーの処理', () => {
-    setup();
+  it('handleError - 不明なエラーの処理', () => {
     const error = { unknown: 'error' };
 
     try {
@@ -139,38 +132,29 @@ Deno.test('ErrorHandler', async (t) => {
       // never関数なので必ずエラーになる
     }
 
-    assertSpyCall(mockError, 0, {
-      args: ['テスト操作: 不明なエラー', error],
-    });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith('テスト操作: 不明なエラー', error);
   });
 
-  await t.step('withErrorHandling - 成功時', async () => {
-    setup();
+  it('withErrorHandling - 成功時', async () => {
     const result = await errorHandler.withErrorHandling(
       () => Promise.resolve('success'),
-      'テスト操作',
+      'テスト操作'
     );
-    assertEquals(result, 'success');
-    cleanup();
+    expect(result).toBe('success');
   });
 
-  await t.step('withErrorHandling - エラー時', async () => {
-    setup();
+  it('withErrorHandling - エラー時', async () => {
     const error = new Error('テストエラー');
 
     try {
       await errorHandler.withErrorHandling(
         () => Promise.reject(error),
-        'テスト操作',
+        'テスト操作'
       );
     } catch {
       // never関数なので必ずエラーになる
     }
 
-    assertSpyCall(mockError, 0, {
-      args: ['テスト操作: テストエラー', error],
-    });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith('テスト操作: テストエラー', error);
   });
 });

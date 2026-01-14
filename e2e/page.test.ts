@@ -1,64 +1,69 @@
-import { assertEquals, assertExists } from '@std/assert';
-import { loadTestConfig, runCommand, setupConfigure } from './setup.ts';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { writeFileSync, unlinkSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { loadTestConfig, runCommand, setupConfigure } from './setup.js';
 
-Deno.test('Page E2E Tests', async (t) => {
-  const config = await loadTestConfig();
-  await setupConfigure();
+describe('Page E2E Tests', () => {
   let createdPageId: string | undefined;
 
-  await t.step('should create a new page', async () => {
+  beforeAll(async () => {
+    await loadTestConfig();
+    await setupConfigure();
+  });
+
+  it('should create a new page', async () => {
+    const config = await loadTestConfig();
     // 一時的なMarkdownファイルを作成
-    const tempFile = await Deno.makeTempFile({ suffix: '.md' });
-    await Deno.writeTextFile(
-      tempFile,
-      '# E2E Test Page\n\nThis is a test page.',
-    );
+    const tempFile = join(tmpdir(), `test-${Date.now()}.md`);
+    writeFileSync(tempFile, '# E2E Test Page\n\nThis is a test page.');
 
     const { success, output } = await runCommand(
-      `page create ${config.NOTION_ROOT_ID} ${tempFile}`,
+      `page create ${config.NOTION_ROOT_ID} ${tempFile}`
     );
-    assertEquals(success, true);
-    assertExists(output);
-    console.log('Command output:', output);
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
+
     // Extract page ID from output
     const match = output.match(/https:\/\/www\.notion\.so\/.*-([a-f0-9]{32})/);
-    console.log('Regex match:', match);
     createdPageId = match?.[1];
-    assertExists(createdPageId, 'Failed to extract created page ID');
+    expect(createdPageId).toBeDefined();
 
     // 一時ファイルを削除
-    await Deno.remove(tempFile);
+    unlinkSync(tempFile);
   });
 
-  await t.step('should get page content', async () => {
+  it('should get page content', async () => {
     if (!createdPageId) return;
     const { success, output } = await runCommand(`page get ${createdPageId}`);
-    assertEquals(success, true);
-    assertExists(output);
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
   });
 
-  await t.step('should update page title', async () => {
+  it('should update page title', async () => {
     if (!createdPageId) return;
     // 一時的なMarkdownファイルを作成
-    const tempFile = await Deno.makeTempFile({ suffix: '.md' });
-    await Deno.writeTextFile(
+    const tempFile = join(tmpdir(), `test-update-${Date.now()}.md`);
+    writeFileSync(
       tempFile,
-      '# Updated E2E Test Page\n\nThis is an updated test page.',
+      '# Updated E2E Test Page\n\nThis is an updated test page.'
     );
+
     const { success, output } = await runCommand(
-      `page update ${createdPageId} ${tempFile}`,
+      `page update ${createdPageId} ${tempFile}`
     );
-    assertEquals(success, true);
-    assertExists(output);
-    await Deno.remove(tempFile);
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
+
+    unlinkSync(tempFile);
   });
 
-  await t.step('should delete page', async () => {
+  it('should delete page', async () => {
     if (!createdPageId) return;
     const { success, output } = await runCommand(
-      `page remove ${createdPageId} -f`,
+      `page remove ${createdPageId} -f`
     );
-    assertEquals(success, true);
-    assertExists(output);
+    expect(success).toBe(true);
+    expect(output).toBeDefined();
   });
 });

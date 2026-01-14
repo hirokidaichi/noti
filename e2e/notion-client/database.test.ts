@@ -1,8 +1,7 @@
-import { assertEquals, assertExists } from '@std/assert';
-import { afterAll, beforeAll, describe, it } from '@std/testing/bdd';
-import { NotionClient } from '../../src/lib/notion/client.ts';
-import { loadTestConfig } from '../test-config.ts';
-import { Config } from '../../src/lib/config/config.ts';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { NotionClient } from '../../src/lib/notion/client.js';
+import { loadTestConfig } from '../test-config.js';
+import { Config } from '../../src/lib/config/config.js';
 
 describe('Notion Client Database Operations', () => {
   let client: NotionClient;
@@ -47,9 +46,9 @@ describe('Notion Client Database Operations', () => {
         },
       });
 
-      assertExists(database.id);
-      // deno-lint-ignore no-explicit-any
-      assertEquals((database as any).title[0].text.content, 'Test Database');
+      expect(database.id).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((database as any).title[0].text.content).toBe('Test Database');
       testDatabaseId = database.id;
     });
 
@@ -68,12 +67,11 @@ describe('Notion Client Database Operations', () => {
         },
       });
 
-      assertExists(updated.properties.Tags);
-      // deno-lint-ignore no-explicit-any
-      assertEquals(
-        (updated.properties.Tags as any).multi_select.options[0].name,
-        'Important',
-      );
+      expect(updated.properties.Tags).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(
+        (updated.properties.Tags as any).multi_select.options[0].name
+      ).toBe('Important');
     });
 
     it('should query database with filters', async () => {
@@ -94,12 +92,11 @@ describe('Notion Client Database Operations', () => {
         },
       });
 
-      assertEquals(result.results.length, 1);
-      // deno-lint-ignore no-explicit-any
-      assertEquals(
-        (result.results[0] as any).properties.Name.title[0].text.content,
-        'Test Entry',
-      );
+      expect(result.results.length).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(
+        (result.results[0] as any).properties.Name.title[0].text.content
+      ).toBe('Test Entry');
     });
   });
 
@@ -135,11 +132,10 @@ describe('Notion Client Database Operations', () => {
         operation: 'move',
       });
 
-      assertExists(movedPage);
-      // deno-lint-ignore no-explicit-any
-      assertEquals(
-        (movedPage as any).properties.Name.title[0].text.content,
-        'Page to Move',
+      expect(movedPage).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((movedPage as any).properties.Name.title[0].text.content).toBe(
+        'Page to Move'
       );
     });
 
@@ -168,21 +164,19 @@ describe('Notion Client Database Operations', () => {
         with_content: true,
       });
 
-      assertExists(copiedPage);
-      // deno-lint-ignore no-explicit-any
-      assertEquals(
-        (copiedPage as any).properties.Name.title[0].text.content,
-        'Page to Copy',
+      expect(copiedPage).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((copiedPage as any).properties.Name.title[0].text.content).toBe(
+        'Page to Copy'
       );
 
       // コンテンツが正しくコピーされたか確認
       const blocks = await client.getBlocks(copiedPage.id);
-      assertEquals(blocks.results.length, 1);
-      // deno-lint-ignore no-explicit-any
-      assertEquals(
-        (blocks.results[0] as any).paragraph.rich_text[0].text.content,
-        'Test content',
-      );
+      expect(blocks.results.length).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(
+        (blocks.results[0] as any).paragraph.rich_text[0].text.content
+      ).toBe('Test content');
     });
   });
 
@@ -245,11 +239,11 @@ describe('Notion Client Database Operations', () => {
 
         // リレーションを確認
         const retrievedPage = await client.getPage(sourcePage.id);
-        // deno-lint-ignore no-explicit-any
-        const relations =
-          (retrievedPage as any).properties.RelatedItems.relation;
-        assertEquals(relations.length, 1);
-        assertEquals(relations[0].id, targetPage.id);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const relations = (retrievedPage as any).properties.RelatedItems
+          .relation;
+        expect(relations.length).toBe(1);
+        expect(relations[0].id).toBe(targetPage.id);
       });
 
       it('should handle multiple relations', async () => {
@@ -268,9 +262,11 @@ describe('Notion Client Database Operations', () => {
         // 複数のリレーションを持つページを作成
         const sourcePage = await client.createDatabasePage(sourceDbId, {
           Name: {
-            title: [{
-              text: { content: 'Source Page with Multiple Relations' },
-            }],
+            title: [
+              {
+                text: { content: 'Source Page with Multiple Relations' },
+              },
+            ],
           },
           RelatedItems: {
             relation: targetPages.map((page) => ({ id: page.id })),
@@ -279,15 +275,14 @@ describe('Notion Client Database Operations', () => {
 
         // リレーションを確認
         const retrievedPage = await client.getPage(sourcePage.id);
-        // deno-lint-ignore no-explicit-any
-        const relations =
-          (retrievedPage as any).properties.RelatedItems.relation;
-        assertEquals(relations.length, 2);
-        assertEquals(
-          // deno-lint-ignore no-explicit-any
-          relations.map((r: any) => r.id).sort(),
-          targetPages.map((p) => p.id).sort(),
-        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const relations = (retrievedPage as any).properties.RelatedItems
+          .relation;
+        expect(relations.length).toBe(2);
+        expect(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          relations.map((r: any) => r.id).sort()
+        ).toEqual(targetPages.map((p) => p.id).sort());
       });
 
       it('should update relations', async () => {
@@ -319,10 +314,10 @@ describe('Notion Client Database Operations', () => {
 
         // 更新されたリレーションを確認
         const updatedPage = await client.getPage(sourcePage.id);
-        // deno-lint-ignore no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const relations = (updatedPage as any).properties.RelatedItems.relation;
-        assertEquals(relations.length, 1);
-        assertEquals(relations[0].id, targetPage2.id);
+        expect(relations.length).toBe(1);
+        expect(relations[0].id).toBe(targetPage2.id);
       });
     });
   });
@@ -336,19 +331,15 @@ describe('Notion Client Database Operations', () => {
           properties: {
             Name: { title: {} },
             InvalidType: {
-              // @ts-ignore: テスト用に意図的に不正な型を指定
+              // @ts-expect-error テスト用に意図的に不正な型を指定
               invalid_type: {},
             },
           },
         });
         throw new Error('Expected to throw an error for invalid property type');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        console.log('Invalid property type error:', error.message);
-        assertEquals(
-          error.message.includes('validation'),
-          true,
-          'エラーメッセージに "validation" が含まれていること',
-        );
+        expect(error.message.includes('validation')).toBe(true);
       }
     });
 
@@ -363,15 +354,11 @@ describe('Notion Client Database Operations', () => {
           },
         });
         throw new Error(
-          'Expected to throw an error for missing required properties',
+          'Expected to throw an error for missing required properties'
         );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        console.log('Missing required properties error:', error.message);
-        assertEquals(
-          error.message.includes('Title is not provided'),
-          true,
-          'エラーメッセージに "Title is not provided" が含まれていること',
-        );
+        expect(error.message.includes('Title is not provided')).toBe(true);
       }
     });
 
@@ -380,13 +367,9 @@ describe('Notion Client Database Operations', () => {
       try {
         await client.getDatabase(nonExistentId);
         throw new Error('Expected to throw an error for non-existent database');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        console.log('Non-existent database error:', error.message);
-        assertEquals(
-          error.message.includes('database_id'),
-          true,
-          'エラーメッセージに "database_id" が含まれていること',
-        );
+        expect(error.message.includes('database_id')).toBe(true);
       }
     });
 
@@ -406,19 +389,16 @@ describe('Notion Client Database Operations', () => {
           Name: { title: [{ text: { content: 'Test Entry' } }] },
           Priority: {
             type: 'number',
-            // @ts-ignore: テスト用に意図的に不正な値を指定
+            // @ts-expect-error テスト用に意図的に不正な値を指定
             number: 'not a number' as unknown as number,
           },
         });
         throw new Error(
-          'Expected to throw an error for invalid property value',
+          'Expected to throw an error for invalid property value'
         );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        assertEquals(
-          error.message.includes('number'),
-          true,
-          'エラーメッセージに数値に関する記述が含まれていること',
-        );
+        expect(error.message.includes('number')).toBe(true);
       }
     });
 
@@ -427,14 +407,11 @@ describe('Notion Client Database Operations', () => {
       try {
         await client.getDatabase(invalidId);
         throw new Error(
-          'Expected to throw an error for invalid database ID format',
+          'Expected to throw an error for invalid database ID format'
         );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        assertEquals(
-          error.message.includes('valid'),
-          true,
-          'エラーメッセージにIDの有効性に関する記述が含まれていること',
-        );
+        expect(error.message.includes('valid')).toBe(true);
       }
     });
   });

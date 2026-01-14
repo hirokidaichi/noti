@@ -1,8 +1,8 @@
 import { Client } from '@notionhq/client';
-import { NotionClient } from './notion-types.ts';
+import { NotionClient } from './notion-types.js';
 import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints.js';
 
-type NotionPropertyValue =
+type _NotionPropertyValue =
   | { type: 'title'; title: Array<{ text: { content: string } }> }
   | { type: 'rich_text'; rich_text: Array<{ text: { content: string } }> }
   | { type: 'number'; number: number }
@@ -14,9 +14,13 @@ type NotionPropertyValue =
   | { type: 'email'; email: string }
   | { type: 'phone_number'; phone_number: string }
   | {
-    type: 'files';
-    files: Array<{ name: string; type: 'external'; external: { url: string } }>;
-  };
+      type: 'files';
+      files: Array<{
+        name: string;
+        type: 'external';
+        external: { url: string };
+      }>;
+    };
 
 export class NotionApiClient extends Client implements NotionClient {
   constructor(apiKey: string) {
@@ -38,14 +42,14 @@ export class NotionApiClient extends Client implements NotionClient {
           };
           return acc;
         },
-        {} as Record<string, { type: string; name: string }>,
+        {} as Record<string, { type: string; name: string }>
       ),
     };
   }
 
   async createPages(
     databaseId: string,
-    pages: Record<string, unknown>[],
+    pages: Record<string, unknown>[]
   ): Promise<void> {
     for (const page of pages) {
       await this.pages.create({
@@ -56,27 +60,30 @@ export class NotionApiClient extends Client implements NotionClient {
   }
 
   private convertProperties(
-    data: Record<string, unknown>,
+    data: Record<string, unknown>
   ): CreatePageParameters['properties'] {
-    return Object.entries(data).reduce((acc, [key, value]) => {
-      if (typeof value === 'string') {
-        acc[key] = { rich_text: [{ text: { content: value } }] };
-      } else if (typeof value === 'number') {
-        acc[key] = { number: value };
-      } else if (typeof value === 'boolean') {
-        acc[key] = { checkbox: value };
-      } else if (value instanceof Date) {
-        acc[key] = { date: { start: value.toISOString() } };
-      } else if (Array.isArray(value)) {
-        acc[key] = {
-          multi_select: value.map((v) => ({ name: String(v) })),
-        };
-      } else if (value === null || value === undefined) {
-        acc[key] = { rich_text: [] };
-      } else {
-        acc[key] = { rich_text: [{ text: { content: String(value) } }] };
-      }
-      return acc;
-    }, {} as CreatePageParameters['properties']);
+    return Object.entries(data).reduce(
+      (acc, [key, value]) => {
+        if (typeof value === 'string') {
+          acc[key] = { rich_text: [{ text: { content: value } }] };
+        } else if (typeof value === 'number') {
+          acc[key] = { number: value };
+        } else if (typeof value === 'boolean') {
+          acc[key] = { checkbox: value };
+        } else if (value instanceof Date) {
+          acc[key] = { date: { start: value.toISOString() } };
+        } else if (Array.isArray(value)) {
+          acc[key] = {
+            multi_select: value.map((v) => ({ name: String(v) })),
+          };
+        } else if (value === null || value === undefined) {
+          acc[key] = { rich_text: [] };
+        } else {
+          acc[key] = { rich_text: [{ text: { content: String(value) } }] };
+        }
+        return acc;
+      },
+      {} as CreatePageParameters['properties']
+    );
   }
 }

@@ -1,4 +1,4 @@
-import { Confirm, Input, Select } from '@cliffy/prompt';
+import { confirm, input, select } from '@inquirer/prompts';
 
 export interface PromptOptions {
   force?: boolean;
@@ -7,28 +7,28 @@ export interface PromptOptions {
 export class PromptUtils {
   static async confirm(
     message: string,
-    options: PromptOptions = {},
+    options: PromptOptions = {}
   ): Promise<boolean> {
     if (options.force) {
       return true;
     }
-    return await Confirm.prompt(message);
+    return await confirm({ message });
   }
 
   static async select(
     message: string,
     options: string[],
-    defaultOption?: string,
+    defaultOption?: string
   ): Promise<string> {
-    return await Select.prompt({
+    return await select({
       message,
-      options,
+      choices: options.map((opt) => ({ value: opt, name: opt })),
       default: defaultOption || options[0],
     });
   }
 
   static async input(message: string, defaultValue?: string): Promise<string> {
-    return await Input.prompt({
+    return await input({
       message,
       default: defaultValue,
     });

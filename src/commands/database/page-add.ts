@@ -1,11 +1,12 @@
-import { Command } from '@cliffy/command';
-import { Checkbox, Confirm, Input, Select } from '@cliffy/prompt';
-import { NotionClient } from '../../lib/notion/client.ts';
-import { Config } from '../../lib/config/config.ts';
+import { Command } from 'commander';
+import { checkbox, confirm, input, select } from '@inquirer/prompts';
+import { readFile } from 'node:fs/promises';
+import { NotionClient } from '../../lib/notion/client.js';
+import { Config } from '../../lib/config/config.js';
 import type { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints.js';
-import { OutputHandler } from '../../lib/command-utils/output-handler.ts';
-import { ErrorHandler } from '../../lib/command-utils/error-handler.ts';
-import { PageResolver } from '../../lib/command-utils/page-resolver.ts';
+import { OutputHandler } from '../../lib/command-utils/output-handler.js';
+import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
+import { PageResolver } from '../../lib/command-utils/page-resolver.js';
 
 // データベースのプロパティ型定義
 interface DatabaseProperty {
@@ -54,7 +55,7 @@ function validatePropertyValue(value: string, type: string): boolean {
 // プロパティ値をNotionのAPI形式に変換
 function formatPropertyForUpdate(
   value: unknown,
-  type: string,
+  type: string
 ): CreatePageParameters['properties'][string] {
   switch (type) {
     case 'title':
@@ -92,10 +93,10 @@ async function createPageFromJson(
   client: NotionClient,
   databaseId: string,
   jsonFile: string,
-  outputHandler: OutputHandler,
+  outputHandler: OutputHandler
 ): Promise<void> {
   // JSONファイルの読み込み
-  const jsonContent = await Deno.readTextFile(jsonFile);
+  const jsonContent = await readFile(jsonFile, 'utf-8');
   const data = JSON.parse(jsonContent);
   outputHandler.debug('JSON Data:', data);
 
@@ -109,7 +110,7 @@ async function createPageFromJson(
     const propType = database.properties[key]?.type;
     if (!propType) {
       outputHandler.info(
-        `警告: プロパティ "${key}" はデータベースに存在しません`,
+        `警告: プロパティ "${key}" はデータベースに存在しません`
       );
       continue;
     }
@@ -117,11 +118,10 @@ async function createPageFromJson(
     try {
       propertyValues[key] = formatPropertyForUpdate(value, propType);
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(
-        `プロパティ "${key}" の変換に失敗しました: ${errorMessage}`,
+        `プロパティ "${key}" の変換に失敗しました: ${errorMessage}`
       );
     }
   }
@@ -132,7 +132,7 @@ async function createPageFromJson(
 async function createPageInteractive(
   client: NotionClient,
   databaseId: string,
-  outputHandler: OutputHandler,
+  outputHandler: OutputHandler
 ): Promise<void> {
   // データベース情報の取得
   const database = await client.getDatabase(databaseId);
@@ -145,11 +145,12 @@ async function createPageInteractive(
       id: prop.id,
       name,
       type: prop.type,
-      options: prop.type === 'select'
-        ? prop.select?.options
-        : prop.type === 'multi_select'
-        ? prop.multi_select?.options
-        : undefined,
+      options:
+        prop.type === 'select'
+          ? prop.select?.options
+          : prop.type === 'multi_select'
+            ? prop.multi_select?.options
+            : undefined,
       number: prop.type === 'number' ? prop.number : undefined,
       formula: prop.type === 'formula' ? prop.formula : undefined,
       required: ['title'].includes(prop.type),
@@ -170,59 +171,63 @@ async function createPageInteractive(
     switch (prop.type) {
       case 'select': {
         if (prop.options && prop.options.length > 0) {
-          const options = prop.options.map((opt) => opt.name);
-          value = await Select.prompt({
+          const choices = prop.options.map((opt) => ({
+            name: opt.name,
+            value: opt.name,
+          }));
+          value = await select({
             message: `${name} を選択してください:`,
-            options,
-            default: options[0],
+            choices,
+            default: choices[0].value,
           });
         } else {
-          value = await Input.prompt(`${name} を入力してください:`);
+          value = await input({ message: `${name} を入力してください:` });
         }
         break;
       }
       case 'multi_select': {
         if (prop.options && prop.options.length > 0) {
-          const options = prop.options.map((opt) => opt.name);
-          value = await Checkbox.prompt({
+          const choices = prop.options.map((opt) => ({
+            name: opt.name,
+            value: opt.name,
+          }));
+          value = await checkbox({
             message: `${name} を選択してください:`,
-            options,
+            choices,
           });
         } else {
-          const input = await Input.prompt(
-            `${name} をカンマ区切りで入力してください:`,
-          );
-          value = input.split(',').map((v) => v.trim());
+          const inputValue = await input({
+            message: `${name} をカンマ区切りで入力してください:`,
+          });
+          value = inputValue.split(',').map((v) => v.trim());
         }
         break;
       }
       case 'checkbox': {
-        value = await Confirm.prompt(`${name}:`);
+        value = await confirm({ message: `${name}:` });
         break;
       }
       default: {
         let isValid = false;
         while (!isValid) {
-          const input = await Input.prompt({
-            message: `${name} を入力してください${
-              prop.required ? ' (必須)' : ''
-            }:`,
-            validate: (value) => {
-              if (prop.required && !value) {
+          const inputValue = await input({
+            message: `${name} を入力してください${prop.required ? ' (必須)' : ''}:`,
+            validate: (val) => {
+              if (prop.required && !val) {
                 return `${name} は必須項目です`;
               }
-              if (value && !validatePropertyValue(value, prop.type)) {
+              if (val && !validatePropertyValue(val, prop.type)) {
                 return `無効な ${prop.type} 形式です`;
               }
               return true;
             },
           });
 
-          if (!input && !prop.required) {
+          if (!inputValue && !prop.required) {
             break;
           }
 
-          value = convertPropertyValue(input, prop.type);
+          value = convertPropertyValue(inputValue, prop.type);
           isValid = true;
         }
       }
@@ -240,13 +245,10 @@ async function createPage(
   client: NotionClient,
   databaseId: string,
   propertyValues: CreatePageParameters['properties'],
-  outputHandler: OutputHandler,
+  outputHandler: OutputHandler
 ): Promise<void> {
   outputHandler.debug('Property Values:', propertyValues);
-  const response = await client.createDatabasePage(
-    databaseId,
-    propertyValues,
-  );
+  const response = await client.createDatabasePage(databaseId, propertyValues);
   outputHandler.debug('API Response:', response);
 
   outputHandler.success('データベースページを作成しました:');
@@ -258,33 +260,38 @@ async function createPage(
   await outputHandler.handleOutput(output);
 }
 
-export const addCommand = new Command()
+export const addCommand = new Command('add')
   .description('データベースに新規ページを追加')
-  .arguments('<database_id_or_url:string>')
+  .argument('<database_id_or_url>', 'データベースIDまたはURL')
   .option('-d, --debug', 'デバッグモード')
-  .option('-j, --input-json <path:string>', 'JSONファイルからページを作成')
-  .action(async (options, databaseIdOrUrl) => {
-    const outputHandler = new OutputHandler({ debug: options.debug });
-    const errorHandler = new ErrorHandler();
-    const pageResolver = await PageResolver.create();
+  .option('-j, --input-json <path>', 'JSONファイルからページを作成')
+  .action(
+    async (
+      databaseIdOrUrl: string,
+      options: { debug?: boolean; inputJson?: string }
+    ) => {
+      const outputHandler = new OutputHandler({ debug: options.debug });
+      const errorHandler = new ErrorHandler();
+      const pageResolver = await PageResolver.create();
 
-    await errorHandler.withErrorHandling(async () => {
-      const config = await Config.load();
-      const client = new NotionClient(config);
+      await errorHandler.withErrorHandling(async () => {
+        const config = await Config.load();
+        const client = new NotionClient(config);
 
-      // データベースIDの解決
-      const databaseId = await pageResolver.resolvePageId(databaseIdOrUrl);
-      outputHandler.debug('Database ID:', databaseId);
+        // データベースIDの解決
+        const databaseId = await pageResolver.resolvePageId(databaseIdOrUrl);
+        outputHandler.debug('Database ID:', databaseId);
 
-      if (options.inputJson) {
-        await createPageFromJson(
-          client,
-          databaseId,
-          options.inputJson,
-          outputHandler,
-        );
-      } else {
-        await createPageInteractive(client, databaseId, outputHandler);
-      }
-    }, 'データベースページの作成に失敗しました');
-  });
+        if (options.inputJson) {
+          await createPageFromJson(
+            client,
+            databaseId,
+            options.inputJson,
+            outputHandler
+          );
+        } else {
+          await createPageInteractive(client, databaseId, outputHandler);
+        }
+      }, 'データベースページの作成に失敗しました');
+    }
+  );

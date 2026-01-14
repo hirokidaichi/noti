@@ -1,5 +1,5 @@
-import { assertEquals } from '@std/assert';
-import { Logger } from './logger.ts';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { Logger } from './logger.js';
 
 // コンソール出力をキャプチャするためのモック
 let consoleOutput: string[] = [];
@@ -16,149 +16,158 @@ function teardownTest() {
   console.error = originalConsoleError;
 }
 
-Deno.test('Logger - シングルトンパターンのテスト', () => {
-  const logger1 = Logger.getInstance();
-  const logger2 = Logger.getInstance();
-  assertEquals(logger1, logger2, '同じインスタンスを返すべき');
-});
+describe('Logger', () => {
+  it('シングルトンパターンのテスト', () => {
+    const logger1 = Logger.getInstance();
+    const logger2 = Logger.getInstance();
+    expect(logger1).toBe(logger2);
+  });
 
-Deno.test('Logger - デバッグモードのテスト', () => {
-  setupTest();
-  try {
-    const logger = Logger.getInstance();
+  describe('デバッグモードのテスト', () => {
+    beforeEach(() => {
+      setupTest();
+    });
 
-    // デバッグモードOFF時
-    logger.setDebugMode(false);
-    logger.debug('テストメッセージ');
-    assertEquals(
-      consoleOutput.length,
-      0,
-      'デバッグモードOFF時はメッセージを出力しない',
-    );
+    afterEach(() => {
+      teardownTest();
+    });
 
-    // デバッグモードON時
-    logger.setDebugMode(true);
-    logger.debug('テストメッセージ');
-    assertEquals(
-      consoleOutput.length > 0,
-      true,
-      'デバッグモードON時はメッセージを出力する',
-    );
+    it('デバッグモードOFF時はメッセージを出力しない', () => {
+      const logger = Logger.getInstance();
+      logger.setDebugMode(false);
+      logger.debug('テストメッセージ');
+      expect(consoleOutput.length).toBe(0);
+    });
 
-    // オブジェクトデータのデバッグ出力
-    const testData = { key: 'value' };
-    logger.debug('テストデータ', testData);
-    const output = consoleOutput.join('\\n');
-    assertEquals(
-      output.includes('value'),
-      true,
-      'オブジェクトデータが正しく出力される',
-    );
-  } finally {
-    teardownTest();
-  }
-});
+    it('デバッグモードON時はメッセージを出力する', () => {
+      const logger = Logger.getInstance();
+      logger.setDebugMode(true);
+      logger.debug('テストメッセージ');
+      expect(consoleOutput.length).toBeGreaterThan(0);
+    });
 
-Deno.test('Logger - デバッグモードのテスト - プリミティブ値', () => {
-  setupTest();
-  try {
-    const logger = Logger.getInstance();
-    logger.setDebugMode(true);
+    it('オブジェクトデータが正しく出力される', () => {
+      const logger = Logger.getInstance();
+      logger.setDebugMode(true);
+      const testData = { key: 'value' };
+      logger.debug('テストデータ', testData);
+      const output = consoleOutput.join('\\n');
+      expect(output).toContain('value');
+    });
+  });
 
-    // 文字列データ
-    logger.debug('テストデータ', '文字列値');
-    assertEquals(
-      consoleOutput.some((output) => output.includes('文字列値')),
-      true,
-      '文字列データが正しく出力される',
-    );
+  describe('デバッグモードのテスト - プリミティブ値', () => {
+    beforeEach(() => {
+      setupTest();
+    });
 
-    // 数値データ
-    logger.debug('テストデータ', 123);
-    assertEquals(
-      consoleOutput.some((output) => output.includes('123')),
-      true,
-      '数値データが正しく出力される',
-    );
+    afterEach(() => {
+      teardownTest();
+    });
 
-    // undefined
-    logger.debug('テストデータ');
-    assertEquals(
-      consoleOutput.some((output) => !output.includes('undefined')),
-      true,
-      'undefinedの場合はデータを出力しない',
-    );
-  } finally {
-    teardownTest();
-  }
-});
+    it('文字列データが正しく出力される', () => {
+      const logger = Logger.getInstance();
+      logger.setDebugMode(true);
+      logger.debug('テストデータ', '文字列値');
+      expect(consoleOutput.some((output) => output.includes('文字列値'))).toBe(
+        true
+      );
+    });
 
-Deno.test('Logger - エラーメッセージのテスト', () => {
-  setupTest();
-  try {
-    const logger = Logger.getInstance();
+    it('数値データが正しく出力される', () => {
+      const logger = Logger.getInstance();
+      logger.setDebugMode(true);
+      logger.debug('テストデータ', 123);
+      expect(consoleOutput.some((output) => output.includes('123'))).toBe(true);
+    });
 
-    // 通常のエラーメッセージ
-    logger.error('エラーが発生しました');
-    assertEquals(consoleOutput.length, 1, 'エラーメッセージが出力される');
+    it('undefinedの場合はデータを出力しない', () => {
+      const logger = Logger.getInstance();
+      logger.setDebugMode(true);
+      logger.debug('テストデータ');
+      expect(
+        consoleOutput.some((output) => !output.includes('undefined'))
+      ).toBe(true);
+    });
+  });
 
-    // エラーオブジェクト付きのメッセージ
-    const error = new Error('テストエラー');
-    logger.error('エラーが発生しました', error);
-    assertEquals(
-      consoleOutput[1].includes('テストエラー'),
-      true,
-      'エラーオブジェクトのメッセージが含まれる',
-    );
-  } finally {
-    teardownTest();
-  }
-});
+  describe('エラーメッセージのテスト', () => {
+    beforeEach(() => {
+      setupTest();
+    });
 
-Deno.test('Logger - エラーメッセージのテスト - 非Error型のエラー', () => {
-  setupTest();
-  try {
-    const logger = Logger.getInstance();
+    afterEach(() => {
+      teardownTest();
+    });
 
-    // 文字列エラー
-    logger.error('エラーメッセージ', 'カスタムエラー');
-    assertEquals(
-      consoleOutput[0].includes('エラーメッセージ: カスタムエラー'),
-      true,
-      '文字列エラーメッセージが含まれる',
-    );
+    it('エラーメッセージが出力される', () => {
+      const logger = Logger.getInstance();
+      logger.error('エラーが発生しました');
+      expect(consoleOutput.length).toBe(1);
+    });
 
-    // オブジェクトエラー
-    const customError = { message: 'オブジェクトエラー' };
-    logger.error('エラーメッセージ', customError);
-    assertEquals(
-      consoleOutput[1].includes('エラーメッセージ: [object Object]'),
-      true,
-      'オブジェクトがString変換されて出力される',
-    );
-  } finally {
-    teardownTest();
-  }
-});
+    it('エラーオブジェクトのメッセージが含まれる', () => {
+      const logger = Logger.getInstance();
+      logger.error('エラーが発生しました');
+      const error = new Error('テストエラー');
+      logger.error('エラーが発生しました', error);
+      expect(consoleOutput[1]).toContain('テストエラー');
+    });
+  });
 
-Deno.test('Logger - 情報メッセージのテスト', () => {
-  setupTest();
-  try {
-    const logger = Logger.getInstance();
-    logger.info('情報メッセージ');
-    assertEquals(consoleOutput.length, 1, '情報メッセージが出力される');
-  } finally {
-    teardownTest();
-  }
-});
+  describe('エラーメッセージのテスト - 非Error型のエラー', () => {
+    beforeEach(() => {
+      setupTest();
+    });
 
-Deno.test('Logger - 成功メッセージのテスト', () => {
-  setupTest();
-  try {
-    const logger = Logger.getInstance();
-    logger.success('成功メッセージ');
-    assertEquals(consoleOutput.length, 1, '成功メッセージが出力される');
-  } finally {
-    teardownTest();
-  }
+    afterEach(() => {
+      teardownTest();
+    });
+
+    it('文字列エラーメッセージが含まれる', () => {
+      const logger = Logger.getInstance();
+      logger.error('エラーメッセージ', 'カスタムエラー');
+      expect(consoleOutput[0]).toContain('エラーメッセージ: カスタムエラー');
+    });
+
+    it('オブジェクトがString変換されて出力される', () => {
+      const logger = Logger.getInstance();
+      logger.error('エラーメッセージ', 'カスタムエラー');
+      const customError = { message: 'オブジェクトエラー' };
+      logger.error('エラーメッセージ', customError);
+      expect(consoleOutput[1]).toContain('エラーメッセージ: [object Object]');
+    });
+  });
+
+  describe('情報メッセージのテスト', () => {
+    beforeEach(() => {
+      setupTest();
+    });
+
+    afterEach(() => {
+      teardownTest();
+    });
+
+    it('情報メッセージが出力される', () => {
+      const logger = Logger.getInstance();
+      logger.info('情報メッセージ');
+      expect(consoleOutput.length).toBe(1);
+    });
+  });
+
+  describe('成功メッセージのテスト', () => {
+    beforeEach(() => {
+      setupTest();
+    });
+
+    afterEach(() => {
+      teardownTest();
+    });
+
+    it('成功メッセージが出力される', () => {
+      const logger = Logger.getInstance();
+      logger.success('成功メッセージ');
+      expect(consoleOutput.length).toBe(1);
+    });
+  });
 });

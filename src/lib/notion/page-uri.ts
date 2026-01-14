@@ -62,12 +62,13 @@ export class NotionPageId {
   private formatLongId(): NotionLongId {
     if (this.shortId.length !== 32) {
       throw new Error(
-        'Invalid Notion ID length. Expected 32 hexadecimal characters.',
+        'Invalid Notion ID length. Expected 32 hexadecimal characters.'
       );
     }
-    return `${this.shortId.slice(0, 8)}-${this.shortId.slice(8, 12)}-${
-      this.shortId.slice(12, 16)
-    }-${this.shortId.slice(16, 20)}-${this.shortId.slice(20)}`;
+    return `${this.shortId.slice(0, 8)}-${this.shortId.slice(8, 12)}-${this.shortId.slice(
+      12,
+      16
+    )}-${this.shortId.slice(16, 20)}-${this.shortId.slice(20)}`;
   }
 
   /**

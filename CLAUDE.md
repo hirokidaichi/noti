@@ -2,14 +2,15 @@
 
 ## Build & Development Commands
 
-- `deno task dev` - Run with watch mode
-- `deno task test` - Run unit tests
-- `deno task test:watch` - Watch unit tests
-- `deno task e2e` - Run e2e tests
-- `deno task lint` - Run linter
-- `deno task fmt` - Format code
-- `deno task all-check` - Run lint, type check, and tests
-- `deno test -A path/to/specific/test.ts` - Run specific test
+- `npm run dev` - Run with watch mode
+- `npm run build` - Build TypeScript to dist/
+- `npm run test` - Run unit tests
+- `npm run test:watch` - Watch unit tests
+- `npm run e2e` - Run e2e tests
+- `npm run lint` - Run linter
+- `npm run fmt` - Format code
+- `npm run all-check` - Run lint, build, and tests
+- `npx vitest run src/path/to/specific.test.ts` - Run specific test
 
 ## Code Style Guidelines
 
@@ -19,7 +20,7 @@
 - **Imports**: Organize in groups - standard lib, npm modules, local
 - **Naming**: camelCase for variables/methods, PascalCase for classes
 - **Types**: Define interfaces/types for all complex objects
-- **Testing**: BDD style tests with setup/cleanup steps
+- **Testing**: BDD style tests with Vitest (describe/it/expect)
 - **File Structure**: Commands in src/commands/, utilities in src/lib/
 
 ## Documentation

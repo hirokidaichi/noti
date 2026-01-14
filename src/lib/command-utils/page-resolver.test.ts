@@ -1,6 +1,6 @@
-import { assertEquals, assertRejects } from '@std/assert';
-import { PageResolver } from './page-resolver.ts';
-import { AliasManager } from '../config/aliases.ts';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { PageResolver } from './page-resolver.js';
+import { AliasManager } from '../config/aliases.js';
 
 // モックのAliasManagerを作成
 class MockAliasManager implements Pick<AliasManager, 'get'> {
@@ -37,59 +37,58 @@ class MockAliasManager implements Pick<AliasManager, 'get'> {
   }
 }
 
-// テストスイート
-Deno.test('PageResolver', async (t) => {
-  // テスト用のPageResolverを作成
-  const originalLoad = AliasManager.load;
-  // deno-lint-ignore no-explicit-any
-  AliasManager.load = () => Promise.resolve(new MockAliasManager() as any);
+describe('PageResolver', () => {
+  let originalLoad: typeof AliasManager.load;
 
-  await t.step('resolvePageId - 有効なページID', async () => {
+  beforeAll(() => {
+    originalLoad = AliasManager.load;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    AliasManager.load = () => Promise.resolve(new MockAliasManager() as any);
+  });
+
+  afterAll(() => {
+    AliasManager.load = originalLoad;
+  });
+
+  it('resolvePageId - 有効なページID', async () => {
     const resolver = await PageResolver.create();
     const result = await resolver.resolvePageId(
-      'f1234567890123456789012345678901',
+      'f1234567890123456789012345678901'
     );
-    assertEquals(result, 'f1234567890123456789012345678901');
+    expect(result).toBe('f1234567890123456789012345678901');
   });
 
-  await t.step('resolvePageId - 有効なエイリアス', async () => {
+  it('resolvePageId - 有効なエイリアス', async () => {
     const resolver = await PageResolver.create();
     const result = await resolver.resolvePageId('my-page');
-    assertEquals(result, 'f1234567890123456789012345678901');
+    expect(result).toBe('f1234567890123456789012345678901');
   });
 
-  await t.step('resolvePageId - 無効なページID', async () => {
+  it('resolvePageId - 無効なページID', async () => {
     const resolver = await PageResolver.create();
-    await assertRejects(
-      () => resolver.resolvePageId('invalid-id'),
-      Error,
-      '無効なページIDまたはURLです。32文字の16進数である必要があります。',
+    await expect(resolver.resolvePageId('invalid-id')).rejects.toThrow(
+      '無効なページIDまたはURLです。32文字の16進数である必要があります。'
     );
   });
 
-  await t.step('resolveDatabaseId - 有効なデータベースID', async () => {
+  it('resolveDatabaseId - 有効なデータベースID', async () => {
     const resolver = await PageResolver.create();
     const result = await resolver.resolveDatabaseId(
-      'b1234567890123456789012345678901',
+      'b1234567890123456789012345678901'
     );
-    assertEquals(result, 'b1234567890123456789012345678901');
+    expect(result).toBe('b1234567890123456789012345678901');
   });
 
-  await t.step('resolveDatabaseId - 有効なエイリアス', async () => {
+  it('resolveDatabaseId - 有効なエイリアス', async () => {
     const resolver = await PageResolver.create();
     const result = await resolver.resolveDatabaseId('my-db');
-    assertEquals(result, 'b1234567890123456789012345678901');
+    expect(result).toBe('b1234567890123456789012345678901');
   });
 
-  await t.step('resolveDatabaseId - 無効なデータベースID', async () => {
+  it('resolveDatabaseId - 無効なデータベースID', async () => {
     const resolver = await PageResolver.create();
-    await assertRejects(
-      () => resolver.resolveDatabaseId('invalid-id'),
-      Error,
-      '無効なデータベースIDまたはURLです',
+    await expect(resolver.resolveDatabaseId('invalid-id')).rejects.toThrow(
+      '無効なデータベースIDまたはURLです'
     );
   });
-
-  // テスト後のクリーンアップ
-  AliasManager.load = originalLoad;
 });

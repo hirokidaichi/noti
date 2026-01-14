@@ -1,8 +1,7 @@
-import { assertEquals, assertExists } from '@std/assert';
-import { afterAll, beforeAll, describe, it } from '@std/testing/bdd';
-import { NotionClient } from '../../src/lib/notion/client.ts';
-import { loadTestConfig } from '../test-config.ts';
-import { Config } from '../../src/lib/config/config.ts';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { NotionClient } from '../../src/lib/notion/client.js';
+import { loadTestConfig } from '../test-config.js';
+import { Config } from '../../src/lib/config/config.js';
 
 describe('Notion Client Page Operations', () => {
   let client: NotionClient;
@@ -22,14 +21,14 @@ describe('Notion Client Page Operations', () => {
         title: 'Test Page',
       });
 
-      assertExists(page.id);
+      expect(page.id).toBeDefined();
       testPageId = page.id;
 
       const retrievedPage = await client.getPage(page.id);
-      assertEquals(
-        (retrievedPage as any).properties.title.title[0].text.content,
-        'Test Page',
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(
+        (retrievedPage as any).properties.title.title[0].text.content
+      ).toBe('Test Page');
     });
 
     it('should update page title', async () => {
@@ -37,9 +36,9 @@ describe('Notion Client Page Operations', () => {
         title: [{ text: { content: 'Updated Test Page' } }],
       });
 
-      assertEquals(
-        (updatedPage as any).properties.title.title[0].text.content,
-        'Updated Test Page',
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((updatedPage as any).properties.title.title[0].text.content).toBe(
+        'Updated Test Page'
       );
     });
   });
@@ -76,15 +75,15 @@ describe('Notion Client Page Operations', () => {
       await client.appendBlocks(testPageId, blocks);
       const retrievedBlocks = await client.getBlocks(testPageId);
 
-      assertEquals(retrievedBlocks.results.length, 4);
-      assertEquals(
-        (retrievedBlocks.results[0] as any).heading_1.rich_text[0].text.content,
-        'Test Heading',
-      );
-      assertEquals(
-        (retrievedBlocks.results[1] as any).paragraph.rich_text[0].text.content,
-        'Test Paragraph',
-      );
+      expect(retrievedBlocks.results.length).toBe(4);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(
+        (retrievedBlocks.results[0] as any).heading_1.rich_text[0].text.content
+      ).toBe('Test Heading');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(
+        (retrievedBlocks.results[1] as any).paragraph.rich_text[0].text.content
+      ).toBe('Test Paragraph');
     });
 
     it('should delete a block', async () => {
@@ -93,11 +92,11 @@ describe('Notion Client Page Operations', () => {
       await client.deleteBlock(blockToDelete.id);
 
       const updatedBlocks = await client.getBlocks(testPageId);
-      assertEquals(updatedBlocks.results.length, 3);
-      assertEquals(
-        (updatedBlocks.results[0] as any).paragraph.rich_text[0].text.content,
-        'Test Paragraph',
-      );
+      expect(updatedBlocks.results.length).toBe(3);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect(
+        (updatedBlocks.results[0] as any).paragraph.rich_text[0].text.content
+      ).toBe('Test Paragraph');
     });
   });
 
@@ -105,14 +104,14 @@ describe('Notion Client Page Operations', () => {
     it('should add and retrieve comments', async () => {
       // コメントを追加
       const comment = await client.createComment(testPageId, 'Test comment');
-      assertExists(comment.id);
+      expect(comment.id).toBeDefined();
 
       // コメントを取得
       const comments = await client.getComments(testPageId);
-      assertEquals(comments.results.length, 1);
-      assertEquals(
-        (comments.results[0] as any).rich_text[0].text.content,
-        'Test comment',
+      expect(comments.results.length).toBe(1);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      expect((comments.results[0] as any).rich_text[0].text.content).toBe(
+        'Test comment'
       );
     });
   });
@@ -122,30 +121,32 @@ describe('Notion Client Page Operations', () => {
       try {
         await client.getPage('non-existent-page-id');
         throw new Error('Expected to throw an error for non-existent page');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        assertEquals(
-          error.message.includes('path.page_id should be a valid uuid'),
-          true,
-        );
+        expect(
+          error.message.includes('path.page_id should be a valid uuid')
+        ).toBe(true);
       }
     });
 
     it('should handle invalid block operations', async () => {
       try {
-        await client.appendBlocks('non-existent-page-id', [{
-          type: 'paragraph',
-          paragraph: {
-            rich_text: [{ type: 'text', text: { content: 'Test' } }],
+        await client.appendBlocks('non-existent-page-id', [
+          {
+            type: 'paragraph',
+            paragraph: {
+              rich_text: [{ type: 'text', text: { content: 'Test' } }],
+            },
           },
-        }]);
+        ]);
         throw new Error(
-          'Expected to throw an error for invalid block operation',
+          'Expected to throw an error for invalid block operation'
         );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        assertEquals(
-          error.message.includes('path.block_id should be a valid uuid'),
-          true,
-        );
+        expect(
+          error.message.includes('path.block_id should be a valid uuid')
+        ).toBe(true);
       }
     });
 
@@ -154,11 +155,11 @@ describe('Notion Client Page Operations', () => {
       try {
         await client.getPage(invalidUuid);
         throw new Error('Expected to throw an error for invalid UUID format');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (error: any) {
-        assertEquals(
-          error.message.includes('path.page_id should be a valid uuid'),
-          true,
-        );
+        expect(
+          error.message.includes('path.page_id should be a valid uuid')
+        ).toBe(true);
       }
     });
   });

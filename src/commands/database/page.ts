@@ -1,10 +1,10 @@
-import { Command } from '@cliffy/command';
-import { addCommand } from './page-add.ts';
-import { getCommand } from './page-get.ts';
-import { removeCommand } from './page-remove.ts';
+import { Command } from 'commander';
+import { addCommand } from './page-add.js';
+import { getCommand } from './page-get.js';
+import { removeCommand } from './page-remove.js';
 
-export const pageCommand = new Command()
+export const pageCommand = new Command('page')
   .description('データベースページ操作')
-  .command('add', addCommand)
-  .command('get', getCommand)
-  .command('remove', removeCommand);
+  .addCommand(addCommand)
+  .addCommand(getCommand)
+  .addCommand(removeCommand);

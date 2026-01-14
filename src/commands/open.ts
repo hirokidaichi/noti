@@ -1,36 +1,45 @@
-import { Command } from '@cliffy/command';
-import { NotionClient } from '../lib/notion/client.ts';
-import { Config } from '../lib/config/config.ts';
+import { Command } from 'commander';
+import { spawn } from 'node:child_process';
+import { NotionClient } from '../lib/notion/client.js';
+import { Config } from '../lib/config/config.js';
 import { APIErrorCode, APIResponseError } from '@notionhq/client';
-import { OutputHandler } from '../lib/command-utils/output-handler.ts';
-import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
-import { PageResolver } from '../lib/command-utils/page-resolver.ts';
+import { OutputHandler } from '../lib/command-utils/output-handler.js';
+import { ErrorHandler } from '../lib/command-utils/error-handler.js';
+import { PageResolver } from '../lib/command-utils/page-resolver.js';
 
-async function openBrowser(url: string) {
-  let command: string[];
+async function openBrowser(url: string): Promise<void> {
+  let command: string;
+  let args: string[];
 
-  switch (Deno.build.os) {
-    case 'windows':
-      command = ['cmd', '/c', 'start'];
+  switch (process.platform) {
+    case 'win32':
+      command = 'cmd';
+      args = ['/c', 'start', url];
       break;
     case 'linux':
-      command = ['xdg-open'];
+      command = 'xdg-open';
+      args = [url];
       break;
     case 'darwin':
-      command = ['open'];
+      command = 'open';
+      args = [url];
       break;
     default:
-      throw new Error(`未対応のOS: ${Deno.build.os}`);
+      throw new Error(`未対応のOS: ${process.platform}`);
   }
 
-  const process = new Deno.Command(command[0], {
-    args: [...command.slice(1), url],
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: 'ignore', detached: true });
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`ブラウザでの開封に失敗しました: ${url}`));
+      }
+    });
+    child.unref();
   });
-
-  const { success } = await process.output();
-  if (!success) {
-    throw new Error(`ブラウザでの開封に失敗しました: ${url}`);
-  }
 }
 
 async function getNotionUrl(client: NotionClient, id: string): Promise<string> {
@@ -42,8 +51,10 @@ async function getNotionUrl(client: NotionClient, id: string): Promise<string> {
     }
   } catch (error) {
     if (
-      !(error instanceof APIResponseError &&
-        error.code === APIErrorCode.ObjectNotFound)
+      !(
+        error instanceof APIResponseError &&
+        error.code === APIErrorCode.ObjectNotFound
+      )
     ) {
       throw error;
     }
@@ -61,7 +72,7 @@ async function getNotionUrl(client: NotionClient, id: string): Promise<string> {
       error.code === APIErrorCode.ObjectNotFound
     ) {
       throw new Error(
-        `指定されたID ${id} はページまたはデータベースとして見つかりませんでした`,
+        `指定されたID ${id} はページまたはデータベースとして見つかりませんでした`
       );
     }
     throw error;
@@ -70,12 +81,11 @@ async function getNotionUrl(client: NotionClient, id: string): Promise<string> {
   throw new Error('URLが取得できませんでした');
 }
 
-export const openCommand = new Command()
-  .name('open')
+export const openCommand = new Command('open')
   .description('Notionのページまたはデータベースをブラウザで開きます')
-  .arguments('<id_or_url_alias:string>')
+  .argument('<id_or_url_alias>', 'ページID、URL、またはエイリアス')
   .option('-d, --debug', 'デバッグモード')
-  .action(async (options, idOrUrlAlias: string) => {
+  .action(async (idOrUrlAlias: string, options: { debug?: boolean }) => {
     const outputHandler = new OutputHandler({ debug: options.debug });
     const errorHandler = new ErrorHandler();
     const pageResolver = await PageResolver.create();

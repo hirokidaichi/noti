@@ -1,4 +1,4 @@
-import { marked, Token, Tokens } from 'npm:marked@9.1.6';
+import { marked, Token, Tokens } from 'marked';
 import {
   ConversionResult,
   NotionBlocks,
@@ -8,7 +8,7 @@ import {
   NotionHeading3Block,
   NotionNumberedListItemBlock,
   NotionRichText,
-} from './types.ts';
+} from './types.js';
 
 export class MarkdownToBlocks {
   private tokens: Token[] = [];
@@ -66,21 +66,23 @@ export class MarkdownToBlocks {
    * テキストをリッチテキストに変換
    */
   private createRichText(content: string): NotionRichText[] {
-    return [{
-      type: 'text',
-      text: {
-        content,
+    return [
+      {
+        type: 'text',
+        text: {
+          content,
+        },
+        plain_text: content,
+        annotations: {
+          bold: false,
+          italic: false,
+          strikethrough: false,
+          underline: false,
+          code: false,
+          color: 'default',
+        },
       },
-      plain_text: content,
-      annotations: {
-        bold: false,
-        italic: false,
-        strikethrough: false,
-        underline: false,
-        code: false,
-        color: 'default',
-      },
-    }];
+    ];
   }
 
   /**

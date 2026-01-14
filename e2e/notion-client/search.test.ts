@@ -1,8 +1,7 @@
-import { assertEquals, assertExists } from '@std/assert';
-import { beforeAll, describe, it } from '@std/testing/bdd';
-import { NotionClient } from '../../src/lib/notion/client.ts';
-import { loadTestConfig } from '../test-config.ts';
-import { Config } from '../../src/lib/config/config.ts';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { NotionClient } from '../../src/lib/notion/client.js';
+import { loadTestConfig } from '../test-config.js';
+import { Config } from '../../src/lib/config/config.js';
 
 describe('Notion Client Search Operations', () => {
   let client: NotionClient;
@@ -21,7 +20,7 @@ describe('Notion Client Search Operations', () => {
         page_size: 10,
       });
 
-      assertEquals(results.results.length, 0);
+      expect(results.results.length).toBe(0);
     });
 
     it('should return search results with correct structure', async () => {
@@ -30,9 +29,9 @@ describe('Notion Client Search Operations', () => {
         page_size: 10,
       });
 
-      assertExists(results.results);
-      assertExists(results.has_more);
-      assertExists(results.next_cursor);
+      expect(results.results).toBeDefined();
+      expect(results.has_more).toBeDefined();
+      expect(results.next_cursor).toBeDefined();
     });
   });
 
@@ -47,10 +46,10 @@ describe('Notion Client Search Operations', () => {
         page_size: 10,
       });
 
-      assertExists(results.results);
-      // deno-lint-ignore no-explicit-any
+      expect(results.results).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       results.results.forEach((result: any) => {
-        assertEquals(result.object, 'page');
+        expect(result.object).toBe('page');
       });
     });
 
@@ -64,10 +63,10 @@ describe('Notion Client Search Operations', () => {
         page_size: 10,
       });
 
-      assertExists(results.results);
-      // deno-lint-ignore no-explicit-any
+      expect(results.results).toBeDefined();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       results.results.forEach((result: any) => {
-        assertEquals(result.object, 'database');
+        expect(result.object).toBe('database');
       });
     });
 
@@ -78,8 +77,8 @@ describe('Notion Client Search Operations', () => {
         page_size: pageSize,
       });
 
-      assertExists(firstPage.results);
-      assertEquals(firstPage.results.length <= pageSize, true);
+      expect(firstPage.results).toBeDefined();
+      expect(firstPage.results.length <= pageSize).toBe(true);
 
       if (firstPage.has_more && firstPage.next_cursor) {
         const secondPage = await client.search({
@@ -87,8 +86,8 @@ describe('Notion Client Search Operations', () => {
           page_size: pageSize,
           start_cursor: firstPage.next_cursor,
         });
-        assertExists(secondPage.results);
-        assertEquals(secondPage.results.length <= pageSize, true);
+        expect(secondPage.results).toBeDefined();
+        expect(secondPage.results.length <= pageSize).toBe(true);
       }
     });
   });

@@ -1,4 +1,4 @@
-import { Logger } from '../logger.ts';
+import { Logger } from '../logger.js';
 import { APIResponseError } from '@notionhq/client';
 
 export class ErrorHandler {
@@ -19,12 +19,12 @@ export class ErrorHandler {
     } else {
       this.logger.error(`${ctx}: 不明なエラー`, error);
     }
-    Deno.exit(1);
+    process.exit(1);
   }
 
   async withErrorHandling<T>(
     operation: () => Promise<T>,
-    context: string,
+    context: string
   ): Promise<T> {
     try {
       return await operation();

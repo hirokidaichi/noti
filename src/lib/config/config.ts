@@ -1,12 +1,13 @@
-import { join } from '@std/path';
-import { ensureDir } from '@std/fs';
+import { join } from 'node:path';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { homedir } from 'node:os';
 
 export interface ConfigData {
   apiToken?: string;
 }
 
 export class Config {
-  private static CONFIG_DIR = join(Deno.env.get('HOME') || '.', '.noti');
+  private static CONFIG_DIR = join(homedir(), '.noti');
   private static CONFIG_FILE = join(Config.CONFIG_DIR, 'config.json');
 
   constructor(private config: ConfigData = {}) {}
@@ -20,10 +21,10 @@ export class Config {
    */
   static async load(): Promise<Config> {
     try {
-      const text = await Deno.readTextFile(this.CONFIG_FILE);
+      const text = await readFile(this.CONFIG_FILE, 'utf-8');
       return new Config(JSON.parse(text));
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return new Config();
       }
       throw error;
@@ -34,11 +35,8 @@ export class Config {
    * 設定を保存する
    */
   static async save(config: ConfigData): Promise<void> {
-    await ensureDir(this.CONFIG_DIR);
-    await Deno.writeTextFile(
-      this.CONFIG_FILE,
-      JSON.stringify(config, null, 2),
-    );
+    await mkdir(this.CONFIG_DIR, { recursive: true });
+    await writeFile(this.CONFIG_FILE, JSON.stringify(config, null, 2));
   }
 
   /**

@@ -1,21 +1,18 @@
-import { Command } from '@cliffy/command';
-import { Secret } from '@cliffy/prompt/secret';
-import { Config } from '../lib/config/config.ts';
-import { OutputHandler } from '../lib/command-utils/output-handler.ts';
-import { ErrorHandler } from '../lib/command-utils/error-handler.ts';
+import { Command } from 'commander';
+import { password } from '@inquirer/prompts';
+import { Config } from '../lib/config/config.js';
+import { OutputHandler } from '../lib/command-utils/output-handler.js';
+import { ErrorHandler } from '../lib/command-utils/error-handler.js';
 
 function maskToken(token: string | undefined): string {
   if (!token) return '';
-  return `${token.slice(0, 5)}${'*'.repeat(Math.max(0, token.length - 10))}${
-    token.slice(-5)
-  }`;
+  return `${token.slice(0, 5)}${'*'.repeat(Math.max(0, token.length - 10))}${token.slice(-5)}`;
 }
 
-export const configureCommand = new Command()
-  .name('configure')
+export const configureCommand = new Command('configure')
   .description('Notionの設定を行います')
   .option('-d, --debug', 'デバッグモード')
-  .action(async (options) => {
+  .action(async (options: { debug?: boolean }) => {
     const outputHandler = new OutputHandler({ debug: options.debug });
     const errorHandler = new ErrorHandler();
 
@@ -27,9 +24,9 @@ export const configureCommand = new Command()
         outputHandler.info(`現在のトークン: ${maskToken(config.token)}`);
       }
 
-      const token = await Secret.prompt({
+      const token = await password({
         message: 'Notion Integration Token を入力してください:',
-        hidden: true,
+        mask: '*',
       });
 
       if (token) {

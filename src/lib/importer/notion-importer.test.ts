@@ -1,6 +1,6 @@
-import { assertEquals } from '@std/assert';
-import { NotionImporter } from './notion-importer.ts';
-import { NotionClient, NotionImportConfig } from './notion-types.ts';
+import { describe, it, expect } from 'vitest';
+import { NotionImporter } from './notion-importer.js';
+import { NotionClient, NotionImportConfig } from './notion-types.js';
 import { Client } from '@notionhq/client';
 
 // モックデータ
@@ -31,7 +31,7 @@ class MockNotionClient extends Client implements NotionClient {
 
   createPages(
     _databaseId: string,
-    _pages: Record<string, unknown>[],
+    _pages: Record<string, unknown>[]
   ): Promise<void> {
     return Promise.resolve();
   }
@@ -47,58 +47,55 @@ class MockNotionClient extends Client implements NotionClient {
   }
 }
 
-Deno.test({
-  name: 'NotionImporter Tests',
-  fn: async (t) => {
-    await t.step('マッピング生成', async () => {
-      const importer = new NotionImporter(
-        MOCK_CSV_CONTENT,
-        MOCK_API_KEY,
-        MOCK_NOTION_CONFIG,
-        MockNotionClient,
-      );
-      const mapping = await importer.generateMappingFromSchema();
+describe('NotionImporter', () => {
+  it('マッピング生成', async () => {
+    const importer = new NotionImporter(
+      MOCK_CSV_CONTENT,
+      MOCK_API_KEY,
+      MOCK_NOTION_CONFIG,
+      MockNotionClient
+    );
+    const mapping = await importer.generateMappingFromSchema();
 
-      assertEquals(mapping, [
-        {
-          sourceField: 'name',
-          targetField: 'Name',
-          required: undefined,
-          dataType: 'string',
-        },
-        {
-          sourceField: 'age',
-          targetField: 'Age',
-          required: true,
-          dataType: 'number',
-        },
-        {
-          sourceField: 'email',
-          targetField: 'Email',
-          required: undefined,
-          dataType: 'string',
-        },
-        {
-          sourceField: 'tags',
-          targetField: 'Tags',
-          required: undefined,
-          dataType: 'array',
-        },
-      ]);
-    });
+    expect(mapping).toEqual([
+      {
+        sourceField: 'name',
+        targetField: 'Name',
+        required: undefined,
+        dataType: 'string',
+      },
+      {
+        sourceField: 'age',
+        targetField: 'Age',
+        required: true,
+        dataType: 'number',
+      },
+      {
+        sourceField: 'email',
+        targetField: 'Email',
+        required: undefined,
+        dataType: 'string',
+      },
+      {
+        sourceField: 'tags',
+        targetField: 'Tags',
+        required: undefined,
+        dataType: 'array',
+      },
+    ]);
+  });
 
-    await t.step('インポート処理', async () => {
-      const importer = new NotionImporter(
-        MOCK_CSV_CONTENT,
-        MOCK_API_KEY,
-        MOCK_NOTION_CONFIG,
-        MockNotionClient,
-      );
-      const result = await importer.import();
+  it('インポート処理', async () => {
+    const importer = new NotionImporter(
+      MOCK_CSV_CONTENT,
+      MOCK_API_KEY,
+      MOCK_NOTION_CONFIG,
+      MockNotionClient
+    );
+    const result = await importer.import();
 
-      assertEquals(result.success, true);
-      assertEquals(result.importedCount, 2);
-      assertEquals(result.errors.length, 0);
-    });
-  },
+    expect(result.success).toBe(true);
+    expect(result.importedCount).toBe(2);
+    expect(result.errors.length).toBe(0);
+  });
 });

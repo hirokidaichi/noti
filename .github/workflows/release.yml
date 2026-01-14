@@ -17,19 +17,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v1
-        with:
-          deno-version: '1.41.0'
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        run: |
-          npm install @notionhq/client@2.2.14
+        run: npm ci
 
       - name: Generate changelog
         id: changelog
@@ -45,13 +41,12 @@ jobs:
           echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Run tests and checks
-        run: deno task all-check
+        run: npm run all-check
 
-      - name: Create dist directory
-        run: mkdir -p dist
-
-      - name: Build all platforms
-        run: deno task compile:all
+      - name: Publish to npm
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -63,8 +58,3 @@ jobs:
           body: ${{ steps.changelog.outputs.changelog }}
           draft: false
           prerelease: false
-          files: |
-            dist/noti-linux
-            dist/noti-macos
-            dist/noti-macos-arm64
-            dist/noti-windows.exe

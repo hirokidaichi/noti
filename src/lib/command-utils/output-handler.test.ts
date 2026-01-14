@@ -1,19 +1,18 @@
-import { assertEquals } from '@std/assert';
-import { assertSpyCall, spy } from '@std/testing/mock';
-import { OutputHandler } from './output-handler.ts';
-import { Logger } from '../logger.ts';
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { OutputHandler } from './output-handler.js';
+import { Logger } from '../logger.js';
+import * as fs from 'node:fs/promises';
 
-Deno.test('OutputHandler', async (t) => {
+describe('OutputHandler', () => {
   let outputHandler: OutputHandler;
   let originalConsoleLog: typeof console.log;
   let consoleLogCalls: unknown[] = [];
-  const mockDebug = spy();
-  const mockError = spy();
-  const mockSuccess = spy();
-  const mockInfo = spy();
-  const mockSetDebugMode = spy();
+  const mockDebug = vi.fn();
+  const mockError = vi.fn();
+  const mockSuccess = vi.fn();
+  const mockInfo = vi.fn();
+  const mockSetDebugMode = vi.fn();
 
-  // 各テストの前に実行
   function setup(options: { debug?: boolean } = {}) {
     // LoggerのgetInstanceをモック
     const mockLogger = Logger.getInstance();
@@ -34,83 +33,79 @@ Deno.test('OutputHandler', async (t) => {
     };
   }
 
-  // 各テストの後に実行
   function cleanup() {
     console.log = originalConsoleLog;
-    mockDebug.calls.splice(0);
-    mockError.calls.splice(0);
-    mockSuccess.calls.splice(0);
-    mockInfo.calls.splice(0);
-    mockSetDebugMode.calls.splice(0);
+    mockDebug.mockClear();
+    mockError.mockClear();
+    mockSuccess.mockClear();
+    mockInfo.mockClear();
+    mockSetDebugMode.mockClear();
   }
 
-  await t.step('constructor - デバッグモードの設定', () => {
-    setup({ debug: true });
-    assertSpyCall(mockSetDebugMode, 0, { args: [true] });
+  afterEach(() => {
     cleanup();
   });
 
-  await t.step('handleOutput - JSON形式での出力', async () => {
+  it('constructor - デバッグモードの設定', () => {
+    setup({ debug: true });
+    expect(mockSetDebugMode).toHaveBeenCalledWith(true);
+  });
+
+  it('handleOutput - JSON形式での出力', async () => {
     setup();
     const testData = { test: 'data' };
     await outputHandler.handleOutput(testData, { json: true });
-    assertEquals(consoleLogCalls[0], JSON.stringify(testData, null, 2));
-    cleanup();
+    expect(consoleLogCalls[0]).toBe(JSON.stringify(testData, null, 2));
   });
 
-  await t.step('handleOutput - ファイルへの出力', async () => {
+  it('handleOutput - ファイルへの出力', async () => {
     setup();
     const testData = 'test data';
     const tempFile = './test-output.txt';
 
     try {
       await outputHandler.handleOutput(testData, { output: tempFile });
-      const fileContent = await Deno.readTextFile(tempFile);
-      assertEquals(fileContent, testData);
-      assertSpyCall(mockSuccess, 0, {
-        args: [`出力を${tempFile}に保存しました`],
-      });
+      const fileContent = await fs.readFile(tempFile, 'utf-8');
+      expect(fileContent).toBe(testData);
+      expect(mockSuccess).toHaveBeenCalledWith(
+        `出力を${tempFile}に保存しました`
+      );
     } finally {
       try {
-        await Deno.remove(tempFile);
+        await fs.unlink(tempFile);
       } catch {
         // ファイルが存在しない場合は無視
       }
     }
-    cleanup();
   });
 
-  await t.step('debug - デバッグメッセージの出力', () => {
+  it('debug - デバッグメッセージの出力', () => {
     setup();
     const message = 'debug message';
     const data = { test: 'data' };
     outputHandler.debug(message, data);
-    assertSpyCall(mockDebug, 0, { args: [message, data] });
-    cleanup();
+    expect(mockDebug).toHaveBeenCalledWith(message, data);
   });
 
-  await t.step('error - エラーメッセージの出力', () => {
+  it('error - エラーメッセージの出力', () => {
     setup();
     const message = 'error message';
     const error = new Error('test error');
     outputHandler.error(message, error);
-    assertSpyCall(mockError, 0, { args: [message, error] });
-    cleanup();
+    expect(mockError).toHaveBeenCalledWith(message, error);
   });
 
-  await t.step('success - 成功メッセージの出力', () => {
+  it('success - 成功メッセージの出力', () => {
     setup();
     const message = 'success message';
     outputHandler.success(message);
-    assertSpyCall(mockSuccess, 0, { args: [message] });
-    cleanup();
+    expect(mockSuccess).toHaveBeenCalledWith(message);
   });
 
-  await t.step('info - 情報メッセージの出力', () => {
+  it('info - 情報メッセージの出力', () => {
     setup();
     const message = 'info message';
     outputHandler.info(message);
-    assertSpyCall(mockInfo, 0, { args: [message] });
-    cleanup();
+    expect(mockInfo).toHaveBeenCalledWith(message);
   });
 });

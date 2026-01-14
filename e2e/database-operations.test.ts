@@ -1,8 +1,7 @@
-import { assertEquals, assertExists } from '@std/assert';
-import { afterAll, beforeAll, describe, it } from '@std/testing/bdd';
-import { NotionClient } from '../src/lib/notion/client.ts';
-import { loadTestConfig } from './test-config.ts';
-import { Config } from '../src/lib/config/config.ts';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { NotionClient } from '../src/lib/notion/client.js';
+import { loadTestConfig } from './test-config.js';
+import { Config } from '../src/lib/config/config.js';
 
 describe('Database Operations', () => {
   let client: NotionClient;
@@ -46,8 +45,9 @@ describe('Database Operations', () => {
       },
     });
 
-    assertExists(database.id);
-    assertEquals((database as any).title[0].text.content, 'Test Database');
+    expect(database.id).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((database as any).title[0].text.content).toBe('Test Database');
     testDatabaseId = database.id;
   });
 
@@ -66,10 +66,10 @@ describe('Database Operations', () => {
       },
     });
 
-    assertExists(updated.properties.Tags);
-    assertEquals(
-      (updated.properties.Tags as any).multi_select.options[0].name,
-      'Important',
+    expect(updated.properties.Tags).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((updated.properties.Tags as any).multi_select.options[0].name).toBe(
+      'Important'
     );
   });
 
@@ -91,11 +91,11 @@ describe('Database Operations', () => {
       },
     });
 
-    assertEquals(result.results.length, 1);
-    assertEquals(
-      (result.results[0] as any).properties.Name.title[0].text.content,
-      'Test Entry',
-    );
+    expect(result.results.length).toBe(1);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect(
+      (result.results[0] as any).properties.Name.title[0].text.content
+    ).toBe('Test Entry');
   });
 
   it('should move database page', async () => {
@@ -129,10 +129,10 @@ describe('Database Operations', () => {
       operation: 'move',
     });
 
-    assertExists(movedPage);
-    assertEquals(
-      (movedPage as any).properties.Name.title[0].text.content,
-      'Page to Move',
+    expect(movedPage).toBeDefined();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    expect((movedPage as any).properties.Name.title[0].text.content).toBe(
+      'Page to Move'
     );
   });
 

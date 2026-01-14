@@ -1,4 +1,5 @@
-import { Logger } from '../logger.ts';
+import { writeFile } from 'node:fs/promises';
+import { Logger } from '../logger.js';
 
 export interface OutputOptions {
   json?: boolean;
@@ -16,12 +17,12 @@ export class OutputHandler {
 
   async handleOutput(
     data: unknown,
-    options: OutputOptions = {},
+    options: OutputOptions = {}
   ): Promise<void> {
     if (options.json) {
       const output = JSON.stringify(data, null, 2);
       if (options.output) {
-        await Deno.writeTextFile(options.output, output);
+        await writeFile(options.output, output);
         this.logger.success(`出力を${options.output}に保存しました`);
       } else {
         console.log(output);
@@ -30,10 +31,9 @@ export class OutputHandler {
     }
 
     if (options.output) {
-      const output = typeof data === 'string'
-        ? data
-        : JSON.stringify(data, null, 2);
-      await Deno.writeTextFile(options.output, output);
+      const output =
+        typeof data === 'string' ? data : JSON.stringify(data, null, 2);
+      await writeFile(options.output, output);
       this.logger.success(`出力を${options.output}に保存しました`);
     } else {
       console.log(data);

@@ -26,11 +26,14 @@ export interface NotionDatabaseSchema {
 export interface NotionImportConfig {
   databaseId: string;
   schema: {
-    properties: Record<string, {
-      type: string;
-      name?: string;
-      required?: boolean;
-    }>;
+    properties: Record<
+      string,
+      {
+        type: string;
+        name?: string;
+        required?: boolean;
+      }
+    >;
   };
   batchSize?: number;
   skipHeader?: boolean;
@@ -46,6 +49,6 @@ export interface NotionClient extends Client {
   }>;
   createPages(
     databaseId: string,
-    pages: Record<string, unknown>[],
+    pages: Record<string, unknown>[]
   ): Promise<void>;
 }

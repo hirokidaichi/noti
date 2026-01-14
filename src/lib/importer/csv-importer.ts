@@ -1,4 +1,4 @@
-import { parse as parseCSV } from '@std/csv';
+import { parse as parseCSV } from 'csv-parse/sync';
 import {
   DataImporter,
   DataMapping,
@@ -11,7 +11,7 @@ import {
   ProgressCallback,
   ValidationResult,
   ValidationRule,
-} from './types.ts';
+} from './types.js';
 
 export class CSVImporter implements DataImporter {
   private data: string[][];
@@ -19,21 +19,24 @@ export class CSVImporter implements DataImporter {
   private skipHeader: boolean;
   private hasCustomHeaders = false;
 
-  constructor(csvContent: string, options?: {
-    skipHeader?: boolean;
-    delimiter?: string;
-  }) {
+  constructor(
+    csvContent: string,
+    options?: {
+      skipHeader?: boolean;
+      delimiter?: string;
+    }
+  ) {
     this.skipHeader = options?.skipHeader || false;
 
-    // Note: 区切り文字カスタマイズ機能は一時的に無効化
-    // options?.delimiter は将来のバージョンで対応
-
-    this.data = parseCSV(csvContent) as string[][];
+    this.data = parseCSV(csvContent, {
+      delimiter: options?.delimiter || ',',
+      relaxColumnCount: true,
+    }) as string[][];
   }
 
   private reportProgress(
     callback: ProgressCallback | undefined,
-    progress: ImportProgress,
+    progress: ImportProgress
   ) {
     if (callback) {
       callback(progress);
@@ -63,10 +66,13 @@ export class CSVImporter implements DataImporter {
 
     const headers = this.getHeaders();
     return this.data.slice(startIndex).map((row) => {
-      return headers.reduce((obj, header, index) => {
-        obj[header] = index < row.length ? row[index] : '';
-        return obj;
-      }, {} as Record<string, unknown>);
+      return headers.reduce(
+        (obj, header, index) => {
+          obj[header] = index < row.length ? row[index] : '';
+          return obj;
+        },
+        {} as Record<string, unknown>
+      );
     });
   }
 
@@ -85,7 +91,8 @@ export class CSVImporter implements DataImporter {
 
     for (const rule of rules) {
       if (
-        rule.required && (value === null || value === undefined || value === '')
+        rule.required &&
+        (value === null || value === undefined || value === '')
       ) {
         errors.push(rule.message || '必須項目です');
         continue;
@@ -106,12 +113,12 @@ export class CSVImporter implements DataImporter {
       if (typeof value === 'string') {
         if (rule.minLength !== undefined && value.length < rule.minLength) {
           errors.push(
-            rule.message || `${rule.minLength}文字以上である必要があります`,
+            rule.message || `${rule.minLength}文字以上である必要があります`
           );
         }
         if (rule.maxLength !== undefined && value.length > rule.maxLength) {
           errors.push(
-            rule.message || `${rule.maxLength}文字以下である必要があります`,
+            rule.message || `${rule.maxLength}文字以下である必要があります`
           );
         }
         if (rule.pattern && !new RegExp(rule.pattern).test(value)) {
@@ -148,7 +155,7 @@ export class CSVImporter implements DataImporter {
 
   validateDataTypes(
     _data: Record<string, unknown>[],
-    _mapping: DataMapping[],
+    _mapping: DataMapping[]
   ): ValidationResult {
     const errors: string[] = [];
     const totalRows = this.data.length - 1;
@@ -169,7 +176,7 @@ export class CSVImporter implements DataImporter {
           const validationErrors = this.validateValue(value, map.rules);
           if (validationErrors.length > 0) {
             errors.push(
-              `行${i + 2} - ${map.sourceField}: ${validationErrors.join(', ')}`,
+              `行${i + 2} - ${map.sourceField}: ${validationErrors.join(', ')}`
             );
           }
         }
@@ -190,10 +197,12 @@ export class CSVImporter implements DataImporter {
     if (this.mapping.length === 0) {
       return {
         isValid: false,
-        errors: [{
-          field: '*',
-          message: 'マッピングが設定されていません',
-        }],
+        errors: [
+          {
+            field: '*',
+            message: 'マッピングが設定されていません',
+          },
+        ],
       };
     }
 
@@ -203,8 +212,7 @@ export class CSVImporter implements DataImporter {
       if (!headers.includes(map.sourceField)) {
         errors.push({
           field: map.sourceField,
-          message:
-            `ソースフィールド "${map.sourceField}" がCSVヘッダーに存在しません`,
+          message: `ソースフィールド "${map.sourceField}" がCSVヘッダーに存在しません`,
         });
       }
 
@@ -223,9 +231,7 @@ export class CSVImporter implements DataImporter {
     };
   }
 
-  validate(
-    progressCallback?: ProgressCallback,
-  ): ValidationResult {
+  validate(progressCallback?: ProgressCallback): ValidationResult {
     this.reportProgress(progressCallback, {
       phase: 'validation',
       current: 0,
@@ -260,7 +266,7 @@ export class CSVImporter implements DataImporter {
     if (this.skipHeader && !this.hasCustomHeaders) {
       // エラーではなく続行可能な警告
       console.warn(
-        'ヘッダースキップモードでマッピングが設定されていません。自動生成されたフィールド名を使用します。',
+        'ヘッダースキップモードでマッピングが設定されていません。自動生成されたフィールド名を使用します。'
       );
     }
 
@@ -283,7 +289,7 @@ export class CSVImporter implements DataImporter {
     // データ型の検証
     const dataTypeValidation = this.validateDataTypes(
       this.getData(),
-      this.mapping,
+      this.mapping
     );
     if (!dataTypeValidation.isValid) {
       return dataTypeValidation;
@@ -361,7 +367,9 @@ export class CSVImporter implements DataImporter {
         return isNaN(date.getTime()) ? null : date;
       }
       case 'array':
-        return String(value).split(',').map((v) => v.trim());
+        return String(value)
+          .split(',')
+          .map((v) => v.trim());
       case 'object':
         try {
           return JSON.parse(String(value));
@@ -435,9 +443,8 @@ export class CSVImporter implements DataImporter {
         data: transformedData,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : '不明なエラーが発生しました';
+      const errorMessage =
+        error instanceof Error ? error.message : '不明なエラーが発生しました';
       return {
         success: false,
         importedCount: 0,

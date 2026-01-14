@@ -19,7 +19,9 @@ interface PageResult {
 }
 
 // プロパティ値からテキストを抽出
-export function extractPropertyValue(property: Record<string, unknown>): string {
+export function extractPropertyValue(
+  property: Record<string, unknown>
+): string {
   const type = property.type as string;
 
   switch (type) {

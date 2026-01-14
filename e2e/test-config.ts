@@ -1,5 +1,4 @@
-import { load } from '@std/dotenv';
-import { assert } from '@std/assert';
+import * as dotenv from 'dotenv';
 
 export interface TestConfig {
   NOTION_TOKEN: string;
@@ -7,13 +6,20 @@ export interface TestConfig {
 }
 
 export async function loadTestConfig(): Promise<TestConfig> {
-  const env = await load({ export: true });
+  dotenv.config();
 
-  assert(env.NOTION_TOKEN, 'NOTION_TOKEN is required in .env file');
-  assert(env.NOTION_ROOT_ID, 'NOTION_ROOT_ID is required in .env file');
+  const NOTION_TOKEN = process.env.NOTION_TOKEN || process.env.NOTION_API_KEY;
+  const NOTION_ROOT_ID = process.env.NOTION_ROOT_ID;
+
+  if (!NOTION_TOKEN) {
+    throw new Error('NOTION_TOKEN or NOTION_API_KEY is required in .env file');
+  }
+  if (!NOTION_ROOT_ID) {
+    throw new Error('NOTION_ROOT_ID is required in .env file');
+  }
 
   return {
-    NOTION_TOKEN: env.NOTION_TOKEN,
-    NOTION_ROOT_ID: env.NOTION_ROOT_ID,
+    NOTION_TOKEN,
+    NOTION_ROOT_ID,
   };
 }

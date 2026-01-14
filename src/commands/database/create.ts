@@ -1,11 +1,11 @@
-import { Command } from '@cliffy/command';
-import { Confirm, Input, Select } from '@cliffy/prompt';
-import { bold, green, yellow } from '@std/fmt/colors';
-import { Logger } from '../../lib/logger.ts';
-import { ErrorHandler } from '../../lib/command-utils/error-handler.ts';
-import { NotionClient } from '../../lib/notion/client.ts';
-import { Config } from '../../lib/config/config.ts';
-import { Table } from '@cliffy/table';
+import { Command } from 'commander';
+import { confirm, input, select } from '@inquirer/prompts';
+import chalk from 'chalk';
+import Table from 'cli-table3';
+import { Logger } from '../../lib/logger.js';
+import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
+import { NotionClient } from '../../lib/notion/client.js';
+import { Config } from '../../lib/config/config.js';
 
 const logger = Logger.getInstance();
 const errorHandler = new ErrorHandler('database-creation');
@@ -88,9 +88,12 @@ function generatePropertyConfig(properties: PropertyDefinition[]) {
   return propertyConfig;
 }
 
+// 最初のプロパティかどうかのフラグ
+let isFirstProperty = true;
+
 // プロパティの編集ウィザード
 async function propertyWizard(): Promise<PropertyDefinition> {
-  const name = await Input.prompt({
+  const name = await input({
     message: 'プロパティ名を入力してください:',
     validate: (value) => {
       if (!value) return 'プロパティ名は必須です';
@@ -101,9 +104,9 @@ async function propertyWizard(): Promise<PropertyDefinition> {
     },
   });
 
-  const typeChoice = await Select.prompt({
+  const typeChoice = await select({
     message: 'プロパティタイプを選択してください:',
-    options: isFirstProperty
+    choices: isFirstProperty
       ? [{ name: 'タイトル (必須)', value: 'title' }]
       : PROPERTY_TYPES,
   });
@@ -111,7 +114,7 @@ async function propertyWizard(): Promise<PropertyDefinition> {
   let options: string[] = [];
   if (typeChoice === 'select' || typeChoice === 'multi_select') {
     // オプションのカンマ区切り入力
-    const optionsInput = await Input.prompt({
+    const optionsInput = await input({
       message: 'オプション値をカンマ区切りで入力してください:',
       default: '',
     });
@@ -120,7 +123,7 @@ async function propertyWizard(): Promise<PropertyDefinition> {
     }
   }
 
-  const required = await Confirm.prompt({
+  const required = await confirm({
     message: 'このプロパティは必須ですか?',
     default: typeChoice === 'title',
   });
@@ -133,16 +136,12 @@ async function propertyWizard(): Promise<PropertyDefinition> {
   };
 }
 
-// 最初のプロパティかどうかのフラグ
-let isFirstProperty = true;
-
-export const createCommand = new Command()
-  .name('create')
+export const createCommand = new Command('create')
   .description('インタラクティブにNotionデータベースを作成します')
-  .option('--title <title:string>', 'データベースのタイトル')
+  .option('--title <title>', 'データベースのタイトル')
   .option(
-    '--parent <parent:string>',
-    '親ページID（デフォルトはワークスペースのルート）',
+    '--parent <parent>',
+    '親ページID（デフォルトはワークスペースのルート）'
   )
   .action(async (options: DatabaseCreateOptions) => {
     try {
@@ -151,7 +150,7 @@ export const createCommand = new Command()
 
       if (!config.token) {
         errorHandler.handleError(
-          'NotionAPIトークンが設定されていません。`noti configure` を実行してください。',
+          'NotionAPIトークンが設定されていません。`noti configure` を実行してください。'
         );
         return;
       }
@@ -159,23 +158,25 @@ export const createCommand = new Command()
       const notionClient = new NotionClient(config);
 
       // タイトルの入力
-      const title = options.title || await Input.prompt({
-        message: 'データベースのタイトルを入力してください:',
-        validate: (value) => value ? true : 'タイトルは必須です',
-      });
+      const title =
+        options.title ||
+        (await input({
+          message: 'データベースのタイトルを入力してください:',
+          validate: (value) => (value ? true : 'タイトルは必須です'),
+        }));
 
       // 親ページIDの入力 (オプション)
       let parentId = options.parent;
       if (!parentId) {
-        const useParentPage = await Confirm.prompt({
+        const useParentPage = await confirm({
           message: '特定のページ内にデータベースを作成しますか?',
           default: false,
         });
 
         if (useParentPage) {
-          parentId = await Input.prompt({
+          parentId = await input({
             message: '親ページIDを入力してください:',
-            validate: (value) => value ? true : '親ページIDは必須です',
+            validate: (value) => (value ? true : '親ページIDは必須です'),
           });
         }
       }
@@ -185,47 +186,49 @@ export const createCommand = new Command()
       isFirstProperty = true;
 
       // まずタイトルプロパティを追加 (必須)
-      logger.info(bold(yellow('\nタイトルプロパティの設定 (必須)')));
+      logger.info(chalk.bold.yellow('\nタイトルプロパティの設定 (必須)'));
       properties.push(await propertyWizard());
       isFirstProperty = false;
 
       // 追加のプロパティ
       let addMore = true;
       while (addMore) {
-        logger.info(bold(yellow('\n追加プロパティの設定')));
+        logger.info(chalk.bold.yellow('\n追加プロパティの設定'));
         properties.push(await propertyWizard());
 
-        addMore = await Confirm.prompt({
+        addMore = await confirm({
           message: '別のプロパティを追加しますか?',
           default: true,
         });
       }
 
       // プロパティ定義の表示
-      logger.info(bold('\nデータベース定義のプレビュー:'));
-      logger.info(bold(`タイトル: ${title}`));
-      logger.info(bold('プロパティ:'));
+      logger.info(chalk.bold('\nデータベース定義のプレビュー:'));
+      logger.info(chalk.bold(`タイトル: ${title}`));
+      logger.info(chalk.bold('プロパティ:'));
 
-      new Table()
-        .header(['名前', 'タイプ', 'オプション', '必須'])
-        .body(
-          properties.map((prop) => [
-            prop.name,
-            prop.type,
-            prop.options?.join(', ') || '',
-            prop.required ? '✓' : '',
-          ]),
-        )
-        .border(true)
-        .render();
+      const table = new Table({
+        head: ['名前', 'タイプ', 'オプション', '必須'],
+      });
+
+      for (const prop of properties) {
+        table.push([
+          prop.name,
+          prop.type,
+          prop.options?.join(', ') || '',
+          prop.required ? '✓' : '',
+        ]);
+      }
+
+      console.log(table.toString());
 
       // 確認
-      const confirm = await Confirm.prompt({
+      const confirmCreate = await confirm({
         message: 'このデータベースを作成しますか?',
         default: true,
       });
 
-      if (!confirm) {
+      if (!confirmCreate) {
         logger.info('データベース作成をキャンセルしました。');
         return;
       }
@@ -238,12 +241,12 @@ export const createCommand = new Command()
 
         if (!parentId) {
           logger.error(
-            '親ページIDが必要です。--parent オプションで指定してください。',
+            '親ページIDが必要です。--parent オプションで指定してください。'
           );
           return;
         }
 
-        // deno-lint-ignore no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response = await notionClient.createDatabase({
           parent: { page_id: parentId },
           title: [{ text: { content: title } }],
@@ -252,7 +255,9 @@ export const createCommand = new Command()
 
         logger.success('データベースを作成しました');
 
-        logger.success(bold(green('\nデータベースが正常に作成されました！')));
+        logger.success(
+          chalk.bold.green('\nデータベースが正常に作成されました！')
+        );
         logger.info(`データベースID: ${response.id}`);
         logger.info(`データベース名: ${title}`);
 
@@ -262,17 +267,15 @@ export const createCommand = new Command()
         }
       } catch (error) {
         logger.error('データベースの作成に失敗しました');
-        const errorMessage = error instanceof Error
-          ? error.message
-          : String(error);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
         errorHandler.handleError(
-          `データベースの作成中にエラーが発生しました: ${errorMessage}`,
+          `データベースの作成中にエラーが発生しました: ${errorMessage}`
         );
       }
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       errorHandler.handleError(`予期せぬエラーが発生しました: ${errorMessage}`);
     }
   });

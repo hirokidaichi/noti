@@ -1,67 +1,66 @@
-import { assertEquals } from '@std/assert';
-import { MarkdownToBlocks } from './markdown-to-blocks.ts';
-import { NotionCodeBlock, NotionParagraphBlock } from './types.ts';
+import { describe, it, expect } from 'vitest';
+import { MarkdownToBlocks } from './markdown-to-blocks.js';
+import { NotionCodeBlock, NotionParagraphBlock } from './types.js';
 
-Deno.test('MarkdownToBlocks - パラグラフの変換', () => {
-  const converter = new MarkdownToBlocks();
-  const markdown = 'これはテストです。';
-  const result = converter.convert(markdown);
+describe('MarkdownToBlocks', () => {
+  it('パラグラフの変換', () => {
+    const converter = new MarkdownToBlocks();
+    const markdown = 'これはテストです。';
+    const result = converter.convert(markdown);
 
-  assertEquals(result.blocks.length, 1);
-  assertEquals(result.blocks[0].type, 'paragraph');
-  assertEquals(
-    (result.blocks[0] as NotionParagraphBlock).paragraph.rich_text[0].text
-      .content,
-    'これはテストです。',
-  );
-});
+    expect(result.blocks.length).toBe(1);
+    expect(result.blocks[0].type).toBe('paragraph');
+    expect(
+      (result.blocks[0] as NotionParagraphBlock).paragraph.rich_text[0].text
+        .content
+    ).toBe('これはテストです。');
+  });
 
-Deno.test('MarkdownToBlocks - 見出しの変換', () => {
-  const converter = new MarkdownToBlocks();
-  const markdown = '# 見出し1\n## 見出し2\n### 見出し3';
-  const result = converter.convert(markdown);
+  it('見出しの変換', () => {
+    const converter = new MarkdownToBlocks();
+    const markdown = '# 見出し1\n## 見出し2\n### 見出し3';
+    const result = converter.convert(markdown);
 
-  assertEquals(result.blocks.length, 3);
-  assertEquals(result.blocks[0].type, 'heading_1');
-  assertEquals(result.blocks[1].type, 'heading_2');
-  assertEquals(result.blocks[2].type, 'heading_3');
-});
+    expect(result.blocks.length).toBe(3);
+    expect(result.blocks[0].type).toBe('heading_1');
+    expect(result.blocks[1].type).toBe('heading_2');
+    expect(result.blocks[2].type).toBe('heading_3');
+  });
 
-Deno.test('MarkdownToBlocks - リストの変換', () => {
-  const converter = new MarkdownToBlocks();
-  const markdown = '- 箇条書き1\n1. 番号付き1';
-  const result = converter.convert(markdown);
+  it('リストの変換', () => {
+    const converter = new MarkdownToBlocks();
+    const markdown = '- 箇条書き1\n1. 番号付き1';
+    const result = converter.convert(markdown);
 
-  assertEquals(result.blocks.length, 2);
-  assertEquals(result.blocks[0].type, 'bulleted_list_item');
-  assertEquals(result.blocks[1].type, 'numbered_list_item');
-});
+    expect(result.blocks.length).toBe(2);
+    expect(result.blocks[0].type).toBe('bulleted_list_item');
+    expect(result.blocks[1].type).toBe('numbered_list_item');
+  });
 
-Deno.test('MarkdownToBlocks - コードブロックの変換', () => {
-  const converter = new MarkdownToBlocks();
-  const markdown = '```typescript\nconst x = 1;\n```';
-  const result = converter.convert(markdown);
+  it('コードブロックの変換', () => {
+    const converter = new MarkdownToBlocks();
+    const markdown = '```typescript\nconst x = 1;\n```';
+    const result = converter.convert(markdown);
 
-  assertEquals(result.blocks.length, 1);
-  assertEquals(result.blocks[0].type, 'code');
-  assertEquals(
-    (result.blocks[0] as NotionCodeBlock).code.language,
-    'typescript',
-  );
-});
+    expect(result.blocks.length).toBe(1);
+    expect(result.blocks[0].type).toBe('code');
+    expect((result.blocks[0] as NotionCodeBlock).code.language).toBe(
+      'typescript'
+    );
+  });
 
-Deno.test('MarkdownToBlocks - 引用の変換', () => {
-  const converter = new MarkdownToBlocks();
-  const markdown = '> これは引用です';
-  const result = converter.convert(markdown);
+  it('引用の変換', () => {
+    const converter = new MarkdownToBlocks();
+    const markdown = '> これは引用です';
+    const result = converter.convert(markdown);
 
-  assertEquals(result.blocks.length, 1);
-  assertEquals(result.blocks[0].type, 'quote');
-});
+    expect(result.blocks.length).toBe(1);
+    expect(result.blocks[0].type).toBe('quote');
+  });
 
-Deno.test('MarkdownToBlocks - 複合的なMarkdownの変換', () => {
-  const converter = new MarkdownToBlocks();
-  const markdown = `# タイトル
+  it('複合的なMarkdownの変換', () => {
+    const converter = new MarkdownToBlocks();
+    const markdown = `# タイトル
 
 これは本文です。
 
@@ -75,7 +74,8 @@ console.log("Hello");
 
 > 引用文`;
 
-  const result = converter.convert(markdown);
-  assertEquals(result.errors, undefined);
-  assertEquals(result.blocks.length > 0, true);
+    const result = converter.convert(markdown);
+    expect(result.errors).toBeUndefined();
+    expect(result.blocks.length).toBeGreaterThan(0);
+  });
 });

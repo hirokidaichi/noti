@@ -1,16 +1,17 @@
+import { execSync } from 'child_process';
+
 export async function runCommand(
-  command: string,
+  command: string
 ): Promise<{ success: boolean; output: string }> {
-  const process = new Deno.Command('deno', {
-    args: ['task', 'noti', ...command.split(' ')],
-    stdout: 'piped',
-    stderr: 'piped',
-  });
-
-  const { success, stdout, stderr } = await process.output();
-  const stdoutText = new TextDecoder().decode(stdout);
-  const stderrText = new TextDecoder().decode(stderr);
-  const output = stdoutText + stderrText;
-
-  return { success, output };
+  try {
+    const output = execSync(`node dist/main.js ${command}`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+    return { success: true, output };
+  } catch (error) {
+    const execError = error as { stdout?: string; stderr?: string };
+    const output = (execError.stdout || '') + (execError.stderr || '');
+    return { success: false, output };
+  }
 }

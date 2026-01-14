@@ -1,9 +1,10 @@
-import { join } from 'jsr:@std/path@^0.220.1';
-import { ensureDir } from 'jsr:@std/fs@^0.220.1';
-import { Aliases } from './types.ts';
+import { join } from 'node:path';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import { Aliases } from './types.js';
 
 export class AliasManager {
-  private static ALIAS_DIR = join(Deno.env.get('HOME') || '.', '.noti');
+  private static ALIAS_DIR = join(homedir(), '.noti');
   private static ALIAS_FILE = join(AliasManager.ALIAS_DIR, 'aliases.json');
 
   constructor(private aliases: Aliases = {}) {}
@@ -41,10 +42,10 @@ export class AliasManager {
    */
   static async load(): Promise<AliasManager> {
     try {
-      const text = await Deno.readTextFile(this.ALIAS_FILE);
+      const text = await readFile(this.ALIAS_FILE, 'utf-8');
       return new AliasManager(JSON.parse(text));
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         return new AliasManager();
       }
       throw error;
@@ -55,11 +56,8 @@ export class AliasManager {
    * エイリアスを保存する
    */
   static async save(aliases: Aliases): Promise<void> {
-    await ensureDir(this.ALIAS_DIR);
-    await Deno.writeTextFile(
-      this.ALIAS_FILE,
-      JSON.stringify(aliases, null, 2),
-    );
+    await mkdir(this.ALIAS_DIR, { recursive: true });
+    await writeFile(this.ALIAS_FILE, JSON.stringify(aliases, null, 2));
   }
 
   /**

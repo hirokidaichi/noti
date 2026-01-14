@@ -1,7 +1,7 @@
-import { assert, assertEquals, assertNotEquals } from '@std/assert';
-import { NotionPageId } from './page-uri.ts';
+import { describe, it, expect } from 'vitest';
+import { NotionPageId } from './page-uri.js';
 
-Deno.test('NotionPageId', async (t) => {
+describe('NotionPageId', () => {
   // テストケースで使用する定数
   const VALID_SHORT_ID = '19875fb73edc813a9a5bc09f2616cd60';
   const VALID_LONG_ID = '19875fb7-3edc-813a-9a5b-c09f2616cd60';
@@ -14,54 +14,45 @@ Deno.test('NotionPageId', async (t) => {
   const VALID_NOTION_URL_WITH_QUERY_AND_TITLE =
     'https://www.notion.so/My-Page-19875fb73edc813a9a5bc09f2616cd60?v=18a75fb73edc80aeab63000c8710e500';
 
-  await t.step('fromString - 有効なShortIDからインスタンスを生成', () => {
+  it('fromString - 有効なShortIDからインスタンスを生成', () => {
     const pageId = NotionPageId.fromString(VALID_SHORT_ID);
-    assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
-    assertEquals(pageId?.toLongId(), VALID_LONG_ID);
+    expect(pageId?.toShortId()).toBe(VALID_SHORT_ID);
+    expect(pageId?.toLongId()).toBe(VALID_LONG_ID);
   });
 
-  await t.step('fromString - 有効なLongIDからインスタンスを生成', () => {
+  it('fromString - 有効なLongIDからインスタンスを生成', () => {
     const pageId = NotionPageId.fromString(VALID_LONG_ID);
-    assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
-    assertEquals(pageId?.toLongId(), VALID_LONG_ID);
+    expect(pageId?.toShortId()).toBe(VALID_SHORT_ID);
+    expect(pageId?.toLongId()).toBe(VALID_LONG_ID);
   });
 
-  await t.step(
-    'fromString - 有効なURLからインスタンスを生成（ShortID）',
-    () => {
-      const pageId = NotionPageId.fromString(VALID_NOTION_URL);
-      assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
-      assertEquals(pageId?.toLongId(), VALID_LONG_ID);
-    },
-  );
+  it('fromString - 有効なURLからインスタンスを生成（ShortID）', () => {
+    const pageId = NotionPageId.fromString(VALID_NOTION_URL);
+    expect(pageId?.toShortId()).toBe(VALID_SHORT_ID);
+    expect(pageId?.toLongId()).toBe(VALID_LONG_ID);
+  });
 
-  await t.step('fromString - 有効なURLからインスタンスを生成（LongID）', () => {
+  it('fromString - 有効なURLからインスタンスを生成（LongID）', () => {
     const pageId = NotionPageId.fromString(VALID_NOTION_URL_WITH_LONG_ID);
-    assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
-    assertEquals(pageId?.toLongId(), VALID_LONG_ID);
+    expect(pageId?.toShortId()).toBe(VALID_SHORT_ID);
+    expect(pageId?.toLongId()).toBe(VALID_LONG_ID);
   });
 
-  await t.step(
-    'fromString - クエリパラメータ付きURLからインスタンスを生成',
-    () => {
-      const pageId = NotionPageId.fromString(VALID_NOTION_URL_WITH_QUERY);
-      assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
-      assertEquals(pageId?.toLongId(), VALID_LONG_ID);
-    },
-  );
+  it('fromString - クエリパラメータ付きURLからインスタンスを生成', () => {
+    const pageId = NotionPageId.fromString(VALID_NOTION_URL_WITH_QUERY);
+    expect(pageId?.toShortId()).toBe(VALID_SHORT_ID);
+    expect(pageId?.toLongId()).toBe(VALID_LONG_ID);
+  });
 
-  await t.step(
-    'fromString - タイトルとクエリパラメータ付きURLからインスタンスを生成',
-    () => {
-      const pageId = NotionPageId.fromString(
-        VALID_NOTION_URL_WITH_QUERY_AND_TITLE,
-      );
-      assertEquals(pageId?.toShortId(), VALID_SHORT_ID);
-      assertEquals(pageId?.toLongId(), VALID_LONG_ID);
-    },
-  );
+  it('fromString - タイトルとクエリパラメータ付きURLからインスタンスを生成', () => {
+    const pageId = NotionPageId.fromString(
+      VALID_NOTION_URL_WITH_QUERY_AND_TITLE
+    );
+    expect(pageId?.toShortId()).toBe(VALID_SHORT_ID);
+    expect(pageId?.toLongId()).toBe(VALID_LONG_ID);
+  });
 
-  await t.step('fromString - 無効な入力に対してnullを返す', () => {
+  it('fromString - 無効な入力に対してnullを返す', () => {
     // 無効なケース
     const invalidCases = [
       '', // 空文字列
@@ -75,25 +66,25 @@ Deno.test('NotionPageId', async (t) => {
 
     for (const invalidInput of invalidCases) {
       const pageId = NotionPageId.fromString(invalidInput);
-      assert(pageId === null, `入力: "${invalidInput}" はnullを返すべきです`);
+      expect(pageId).toBeNull();
     }
   });
 
-  await t.step('getFormats - 両方の形式を正しく返す', () => {
+  it('getFormats - 両方の形式を正しく返す', () => {
     const pageId = NotionPageId.fromString(VALID_SHORT_ID);
     const formats = pageId?.getFormats();
-    assertEquals(formats, {
+    expect(formats).toEqual({
       shortId: VALID_SHORT_ID,
       longId: VALID_LONG_ID,
     });
   });
 
-  await t.step('toString - ShortIDを返す', () => {
+  it('toString - ShortIDを返す', () => {
     const pageId = NotionPageId.fromString(VALID_LONG_ID);
-    assertEquals(pageId?.toString(), VALID_SHORT_ID);
+    expect(pageId?.toString()).toBe(VALID_SHORT_ID);
   });
 
-  await t.step('大文字小文字の正規化', () => {
+  it('大文字小文字の正規化', () => {
     const upperShortId = VALID_SHORT_ID.toUpperCase();
     const upperLongId = VALID_LONG_ID.toUpperCase();
 
@@ -101,8 +92,8 @@ Deno.test('NotionPageId', async (t) => {
     const pageId2 = NotionPageId.fromString(upperLongId);
 
     // 入力が大文字でも、小文字に正規化されることを確認
-    assertNotEquals(pageId1?.toShortId(), upperShortId);
-    assertEquals(pageId1?.toShortId(), VALID_SHORT_ID);
-    assertEquals(pageId2?.toShortId(), VALID_SHORT_ID);
+    expect(pageId1?.toShortId()).not.toBe(upperShortId);
+    expect(pageId1?.toShortId()).toBe(VALID_SHORT_ID);
+    expect(pageId2?.toShortId()).toBe(VALID_SHORT_ID);
   });
 });

@@ -82,7 +82,7 @@ export interface DataImporter {
   validateMapping(): MappingValidationResult;
   validateDataTypes(
     data: Record<string, unknown>[],
-    mapping: DataMapping[],
+    mapping: DataMapping[]
   ): ValidationResult;
   getHeaders(): string[];
   generateDefaultMapping(): DataMapping[];

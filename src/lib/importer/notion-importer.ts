@@ -1,5 +1,5 @@
-import { CSVImporter } from './csv-importer.ts';
-import { NotionClient, NotionImportConfig } from './notion-types.ts';
+import { CSVImporter } from './csv-importer.js';
+import { NotionClient, NotionImportConfig } from './notion-types.js';
 import { Client } from '@notionhq/client';
 import {
   DataMapping,
@@ -7,7 +7,7 @@ import {
   ImportProgress,
   ImportResult,
   ProgressCallback,
-} from './types.ts';
+} from './types.js';
 
 export class NotionImporter {
   public csvImporter: CSVImporter;
@@ -18,7 +18,7 @@ export class NotionImporter {
     csvContent: string,
     notionApiKey: string,
     config: NotionImportConfig,
-    notionClientClass?: new (apiKey: string) => NotionClient,
+    notionClientClass?: new (apiKey: string) => NotionClient
   ) {
     this.csvImporter = new CSVImporter(csvContent, {
       skipHeader: config.skipHeader,
@@ -26,14 +26,14 @@ export class NotionImporter {
     });
     const client = notionClientClass
       ? new notionClientClass(notionApiKey)
-      : new Client({ auth: notionApiKey }) as unknown as NotionClient;
+      : (new Client({ auth: notionApiKey }) as unknown as NotionClient);
     this.notionClient = client;
     this.config = config;
   }
 
   private reportProgress(
     callback: ProgressCallback | undefined,
-    progress: ImportProgress,
+    progress: ImportProgress
   ) {
     if (callback) {
       callback(progress);
@@ -52,13 +52,11 @@ export class NotionImporter {
         targetField: key,
         required: value.required,
         dataType: this.mapNotionTypeToDataType(value.type),
-      })),
+      }))
     );
   }
 
-  private mapNotionTypeToDataType(
-    notionType: string,
-  ): DataMapping['dataType'] {
+  private mapNotionTypeToDataType(notionType: string): DataMapping['dataType'] {
     switch (notionType) {
       case 'number':
         return 'number';
@@ -109,9 +107,8 @@ export class NotionImporter {
       });
 
       // データの検証
-      const validationResult = await this.csvImporter.validate(
-        progressCallback,
-      );
+      const validationResult =
+        await this.csvImporter.validate(progressCallback);
       if (!validationResult.isValid) {
         return {
           success: false,
@@ -146,14 +143,10 @@ export class NotionImporter {
           phase: 'import',
           current: importedCount,
           total: totalPages,
-          message:
-            `Notionへのインポート中: ${importedCount}/${totalPages}ページ`,
+          message: `Notionへのインポート中: ${importedCount}/${totalPages}ページ`,
         });
 
-        await this.notionClient.createPages(
-          this.config.databaseId,
-          batch,
-        );
+        await this.notionClient.createPages(this.config.databaseId, batch);
 
         importedCount += batch.length;
       }
@@ -171,9 +164,8 @@ export class NotionImporter {
         errors: [],
       };
     } catch (error) {
-      const errorMessage = error instanceof Error
-        ? error.message
-        : '不明なエラーが発生しました';
+      const errorMessage =
+        error instanceof Error ? error.message : '不明なエラーが発生しました';
       return {
         success: false,
         importedCount: 0,

@@ -1,7 +1,8 @@
-import { loadTestConfig, TestConfig } from './test-config.ts';
-import { Config } from '../src/lib/config/config.ts';
-import { NotionClient } from '../src/lib/notion/client.ts';
-import { runCommand } from './test-utils.ts';
+import { execSync } from 'child_process';
+import { loadTestConfig, TestConfig } from './test-config.js';
+import { Config } from '../src/lib/config/config.js';
+import { NotionClient } from '../src/lib/notion/client.js';
+import { runCommand } from './test-utils.js';
 
 export { loadTestConfig, runCommand, type TestConfig };
 
@@ -23,24 +24,13 @@ export async function setupTestDatabase(client: NotionClient): Promise<string> {
 
 export async function setupConfigure(): Promise<void> {
   const config = await loadTestConfig();
-  const process = new Deno.Command('deno', {
-    args: ['task', 'noti', 'configure'],
-    stdin: 'piped',
-    stdout: 'piped',
-    stderr: 'piped',
-  });
-
-  const child = process.spawn();
-  const encoder = new TextEncoder();
-  const writer = child.stdin.getWriter();
-
-  // トークンを入力
-  await writer.write(encoder.encode(config.NOTION_TOKEN + '\n'));
-  await writer.close();
-
-  const { success, stderr } = await child.output();
-  if (!success) {
-    const error = new TextDecoder().decode(stderr);
-    throw new Error(`Configure failed: ${error}`);
+  try {
+    execSync(`echo "${config.NOTION_TOKEN}" | node dist/main.js configure`, {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+  } catch (error) {
+    const execError = error as { stderr?: string };
+    throw new Error(`Configure failed: ${execError.stderr || 'Unknown error'}`);
   }
 }

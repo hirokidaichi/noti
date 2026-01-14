@@ -1,4 +1,4 @@
-import { blue, green, red, yellow } from '@std/fmt/colors';
+import chalk from 'chalk';
 
 export class Logger {
   private static instance: Logger;
@@ -20,7 +20,7 @@ export class Logger {
   debug(title: string, data?: unknown): void {
     if (!this.isDebugMode) return;
 
-    console.error(yellow('=== Debug: ' + title + ' ==='));
+    console.error(chalk.yellow('=== Debug: ' + title + ' ==='));
     if (data !== undefined) {
       if (typeof data === 'object') {
         console.error(JSON.stringify(data, null, 2));
@@ -28,19 +28,19 @@ export class Logger {
         console.error(data);
       }
     }
-    console.error(yellow('========================'));
+    console.error(chalk.yellow('========================'));
   }
 
   error(message: string, error?: unknown): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(red(message + (error ? ': ' + errorMessage : '')));
+    console.error(chalk.red(message + (error ? ': ' + errorMessage : '')));
   }
 
   info(message: string): void {
-    console.error(blue(message));
+    console.error(chalk.blue(message));
   }
 
   success(message: string): void {
-    console.error(green(message));
+    console.error(chalk.green(message));
   }
 }

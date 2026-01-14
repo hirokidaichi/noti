@@ -1,5 +1,5 @@
-import { AliasManager } from '../config/aliases.ts';
-import { NotionPageId } from '../notion/page-uri.ts';
+import { AliasManager } from '../config/aliases.js';
+import { NotionPageId } from '../notion/page-uri.js';
 
 export class DatabaseResolver {
   private constructor(private aliasManager: AliasManager) {}
@@ -14,9 +14,7 @@ export class DatabaseResolver {
     const databaseId = NotionPageId.fromString(resolvedInput);
 
     if (!databaseId) {
-      return Promise.reject(
-        new Error('無効なデータベースIDまたはURLです'),
-      );
+      return Promise.reject(new Error('無効なデータベースIDまたはURLです'));
     }
 
     return Promise.resolve(databaseId.toShortId());
