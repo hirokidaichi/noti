@@ -1,315 +1,212 @@
-# noti - Notion CLI Tool
+<p align="center">
+  <h1 align="center">noti</h1>
+  <p align="center">
+    <strong>Notion CLI for AI Agents & Humans</strong>
+  </p>
+  <p align="center">
+    Seamlessly integrate Notion into your AI-powered workflows
+  </p>
+</p>
 
-NotionのページやデータベースをCLIから操作するためのツールです。
+<p align="center">
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#agent-skills">Agent Skills</a> •
+  <a href="#cli-usage">CLI Usage</a> •
+  <a href="./README-ja.md">日本語</a>
+</p>
 
-[🎮 デモンストレーションガイド](docs/demonstration.md)で、主要機能の実践的な使い方を体験できます。
+---
 
-## 特徴
+## Why noti?
 
-- 🔍 高速な検索機能（fuzzy検索対応）
-- 📝 ページの作成・編集・取得
-- 🗃️ データベースの操作
-- 🔐 安全なAPI Token管理
-- 📊 Markdownインポート/エクスポート対応
+**noti** bridges the gap between Notion and AI agents like Claude Code. Instead of manually copy-pasting content, let your AI assistant directly read, create, and manage your Notion workspace.
 
-## インストール
+- **AI-Native Design** — Built as a Claude Code Agent Skill for seamless AI integration
+- **Full Notion API Coverage** — Pages, databases, blocks, comments, and search
+- **Non-Interactive** — All commands work without prompts, perfect for automation
+- **Markdown-First** — Read and write content in familiar Markdown format
 
-### 方法1: git cloneからインストール
+## Quick Start
+
+### 1. Install
 
 ```bash
+# Clone and build
 git clone https://github.com/hirokidaichi/noti.git
 cd noti
-deno task install
+npm install && npm run build
+
+# Link globally (optional)
+npm link
 ```
 
-### 方法2: URLから直接インストール
+### 2. Configure
+
+Get your Integration Token from [Notion Integrations](https://www.notion.so/my-integrations), then:
 
 ```bash
-deno install --global -A -f -n noti --import-map https://raw.githubusercontent.com/hirokidaichi/noti/main/import_map.json https://raw.githubusercontent.com/hirokidaichi/noti/main/src/main.ts
+noti configure --token <your_token>
 ```
 
-## 設定
-
-初回実行時に、Notion Integration Tokenの設定が必要です。
-トークンは[Notion Integrations](https://www.notion.so/my-integrations)から取得できます。
-
-## コマンド一覧
-
-### 1. configure - 初期設定
+### 3. Install Agent Skills (for Claude Code)
 
 ```bash
-noti configure                    # 対話的に設定を行う
-noti configure --token <token>    # トークンを直接指定
-noti configure --show            # 現在の設定を表示
+# Install to your home directory (available globally)
+noti setup-skills --user
+
+# Or install to current project only
+noti setup-skills --project
 ```
 
-使用例：
+That's it! Claude Code will now have access to all noti commands.
+
+## Agent Skills
+
+noti is designed to work as a **Claude Code Agent Skill**. Once installed, Claude can:
+
+### Read & Understand Your Notion
+
+```
+"Read the meeting notes from last week"
+"What tasks are marked as high priority in my project database?"
+"Show me the latest entries in my journal"
+```
+
+### Create & Update Content
+
+```
+"Create a new page summarizing our discussion"
+"Add a task to the project database with priority high"
+"Append today's notes to my daily log"
+```
+
+### Search & Query
+
+```
+"Find all pages mentioning 'quarterly review'"
+"List incomplete tasks sorted by due date"
+"Export the customer database as CSV"
+```
+
+### Manage Your Workspace
+
+```
+"Set up an alias 'tasks' for my task database"
+"Archive completed items from last month"
+"Import this CSV data into the contacts database"
+```
+
+## CLI Usage
+
+All commands work in your terminal too:
+
+### Pages
 
 ```bash
-# 初回セットアップ
-noti configure
-> Notion Integration Tokenを入力してください: 
-> トークンを保存しました
-
-# 設定の確認
-noti configure --show
-> Token: secret_...
-> 設定ファイル: ~/.config/noti/config.json
+noti page get <id>                    # Get page as Markdown
+noti page create <parent> file.md     # Create from Markdown
+noti page update <id> file.md -f      # Update content
+noti page append <id> file.md         # Append content
+noti page remove <id> -f              # Delete page
 ```
 
-### 2. page - ページ操作
+### Databases
 
 ```bash
-# ページの取得
-noti page get <page_id_or_url>                    # Markdownとして取得
-noti page get <page_id_or_url> --format json      # JSON形式で取得
-noti page get <page_id_or_url> -o output.md       # ファイルに出力
-
-# ページの作成
-noti page create <parent_id_or_url> <input_file.md>                    # 親ページの下に作成
-noti page create <parent_id_or_url> <input_file.md> -t "タイトル"      # タイトルを指定
-noti page create <parent_id_or_url> --template <template_id>           # テンプレートから作成
-
-# ページの更新
-noti page update <page_id_or_url> <input_file.md>                      # 内容を更新
-noti page update <page_id_or_url> <input_file.md> -t "新しいタイトル"  # タイトルも更新
-noti page update <page_id_or_url> <input_file.md> -f                   # 確認なしで更新
-
-# ページの追記
-noti page append <page_id_or_url> <input_file.md>                      # 既存ページに追記
-
-# コメント操作
-noti page comment get <page_id_or_url>                                 # コメント一覧取得
-noti page comment get <page_id_or_url> --format json                   # JSON形式で取得
-noti page comment add <page_id_or_url> "コメント内容"                  # コメント追加
-
-# ページの削除
-noti page remove <page_id_or_url>                                      # 確認あり
-noti page remove <page_id_or_url> -f                                   # 確認なし
+noti database list                    # List all databases
+noti database query <id>              # Query database
+noti database query <id> -f "Status=Done" -s "Name:asc"
+noti database export <id> -f csv -o data.csv
+noti database import -f data.csv -d <id>
 ```
 
-使用例：
+### Search
 
 ```bash
-# Markdownファイルから新規ページを作成
-echo "# テストページ" > test.md
-noti page create <parent_id> test.md
-
-# ページの内容を取得してファイルに保存
-noti page get <page_id> -o page.md
-
-# ページにコメントを追加
-noti page comment add <page_id> "タスクが完了しました"
+noti search "keyword"                 # Search workspace
+noti search "keyword" --json          # JSON output
 ```
 
-### 3. database - データベース操作
+### Aliases
 
 ```bash
-# データベース一覧
-noti database list                           # インタラクティブ表示
-noti database list --json                    # JSON形式で出力
-noti database list --limit 10                # 取得件数制限
-noti database list -o output.json            # ファイルに出力
-
-# データベースページの作成
-noti database page add <database_id_or_url>  # インタラクティブに作成
-noti database page create <database_id_or_url> <properties.json>  # JSONから作成
-
-# データベースページの取得
-noti database page get <page_id_or_url>      # Markdown形式で取得
-noti database page get <page_id_or_url> --json  # JSON形式で取得
-noti database page get <page_id_or_url> -o output.md  # ファイルに出力
-
-# データベースのエクスポート
-noti database export <database_id_or_url>     # JSON形式（デフォルト）
-noti database export <database_id_or_url> -f csv  # CSV形式
-noti database export <database_id_or_url> -f markdown  # Markdown形式
+noti alias add tasks <database_id>    # Create shortcut
+noti open tasks                       # Open in browser
 ```
 
-使用例：
+## Command Reference
+
+| Command | Description |
+|---------|-------------|
+| `configure` | Set up Notion API token |
+| `page` | Page operations (get/create/update/append/remove) |
+| `database` | Database operations (list/query/export/import/create) |
+| `search` | Search pages and databases |
+| `block` | Block operations (get/list/delete) |
+| `alias` | Manage shortcuts to pages/databases |
+| `user` | User information |
+| `open` | Open page in browser |
+| `setup-skills` | Install Agent Skills for Claude Code |
+
+## Examples
+
+### Daily Standup Automation
 
 ```bash
-# データベースの一覧を取得してJSONで保存
-noti database list --json > databases.json
-
-# プロパティファイルからデータベースページを作成
-cat << EOF > properties.json
-{
-  "properties": {
-    "名前": "新規タスク",
-    "状態": "未着手",
-    "期限": "2024-03-31"
-  }
-}
-EOF
-noti database page create <database_id> properties.json
+# Claude can create your standup notes
+"Create a standup note for today with sections for Yesterday, Today, and Blockers"
 ```
 
-### 4. search - 検索
+### Database Backup
 
 ```bash
-noti search                           # インタラクティブ検索
-noti search "検索キーワード"          # キーワード検索
-noti search -p <parent_id>           # 特定ページ配下を検索
-noti search --limit 10               # 検索結果数制限
-noti search --json                   # JSON形式で出力
+# Export your important data
+noti database export <id> -f csv -o backup_$(date +%Y%m%d).csv
 ```
 
-### 5. alias - エイリアス管理
+### Bulk Import
 
 ```bash
-noti alias add <alias_name> <page_id_or_url>  # エイリアス追加
-noti alias remove <alias_name>                 # エイリアス削除
-noti alias list                                # 一覧表示
-noti alias list --json                         # JSON形式で表示
+# Import data with validation
+noti database import -f contacts.csv -d <id> --dry-run  # Validate first
+noti database import -f contacts.csv -d <id>            # Execute
 ```
 
-### 6. open - ブラウザで開く
+### Meeting Notes Workflow
 
 ```bash
-noti open <page_id_or_url_or_alias>           # ページを開く
-noti open --app <app_name>                     # 特定アプリで開く
+# Claude can help manage meeting notes
+"Find the meeting notes from the product sync and summarize the action items"
+"Create a follow-up page with the decisions we discussed"
 ```
 
-### 7. user - ユーザー情報
+## Configuration
 
-```bash
-noti user                            # ユーザー情報表示
-noti user --json                     # JSON形式で表示
-```
+Config files are stored in `~/.config/noti/`:
 
-## オプション
+- `config.json` — API token and settings
+- `aliases.json` — Page/database aliases
 
-以下のオプションは全てのコマンドで使用可能です：
+## Requirements
 
-```bash
--d, --debug                          # デバッグモード
--h, --help                          # ヘルプ表示
--v, --version                       # バージョン表示
---format <format>                   # 出力形式指定（json/markdown）
--o, --output <file>                 # 出力先ファイル指定
-```
+- Node.js 18+
+- Notion Integration Token
+- Claude Code (for Agent Skills)
 
-## デバッグモード
+## License
 
-各コマンドで `-d` または `--debug`
-オプションを使用すると、詳細なデバッグ情報が表示されます。
+MIT
 
-```bash
-noti page get <page_id_or_url> -d
-```
+## Contributing
 
-## 注意事項
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- ページIDやURLは、NotionのWebインターフェースからコピーできます
-- データベースの操作には、適切な権限が必要です
-- APIトークンは、Notionの統合設定ページから取得できます
-- ページIDは32文字の16進数である必要があります
-- 設定ファイルは`~/.config/noti/`ディレクトリに保存されます
-  - `config.json`: API Token等の設定
-  - `aliases.json`: エイリアス設定
+---
 
-## ライセンス
-
-MIT License
-
-## コントリビューション
-
-1. このリポジトリをフォーク
-2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add some amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. プルリクエストを作成
-
-## 仕様
-
-詳細な仕様については[spec.md](spec.md)を参照してください。
-
-## 高度な使用方法
-
-### パイプラインの活用
-
-```bash
-# 検索結果をページ取得にパイプ
-noti search "会議" | xargs -I {} noti page get {}
-
-# データベース一覧から複数のエクスポート
-noti database list | xargs -I {} noti database export {} -f csv -o {}.csv
-
-# エイリアスを使ったバッチ処理
-noti alias list --json | jq -r '.[] | .id' | xargs -I {} noti page get {}
-```
-
-### シェルスクリプトとの連携
-
-```bash
-#!/bin/bash
-# 日次レポートの自動作成
-TODAY=$(date +%Y-%m-%d)
-cat << EOF > report.md
-# 日次レポート ${TODAY}
-## 概要
-- 作成日: ${TODAY}
-- 作成者: $(noti user | grep '名前' | cut -d: -f2)
-EOF
-
-noti page create <parent_id> report.md -t "日次レポート ${TODAY}"
-```
-
-### エラー対処方法
-
-よくあるエラーとその対処方法：
-
-1. 認証エラー
-
-```bash
-Error: Authentication failed
-→ noti configure で正しいトークンを設定
-
-Error: Token not found
-→ 環境変数 NOTION_TOKEN を設定するか、configure を実行
-```
-
-2. 権限エラー
-
-```bash
-Error: Permission denied
-→ Notionの統合設定でページ/データベースへのアクセスを許可
-
-Error: Resource not found
-→ ページ/データベースが存在するか確認し、アクセス権限を確認
-```
-
-3. 入力形式エラー
-
-```bash
-Error: Invalid page ID format
-→ 32文字の16進数IDまたは有効なNotionのURLを指定
-
-Error: Invalid JSON format
-→ JSONファイルの形式を確認（特にカンマの位置やクォート）
-```
-
-### 設定ファイルのカスタマイズ
-
-`~/.config/noti/config.json`:
-
-```json
-{
-  "token": "secret_...",
-  "default_format": "markdown",
-  "editor": "vim",
-  "browser": "firefox",
-  "debug": false
-}
-```
-
-`~/.config/noti/aliases.json`:
-
-```json
-{
-  "daily": "page_id_for_daily_notes",
-  "tasks": "database_id_for_tasks",
-  "team": "page_id_for_team_space"
-}
-```
+<p align="center">
+  <sub>Built for the AI-powered workflow era</sub>
+</p>
