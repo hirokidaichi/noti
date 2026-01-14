@@ -18,6 +18,77 @@ interface PageResult {
   properties: Record<string, unknown>;
 }
 
+// Notionフィルタの型定義
+interface TextFilter {
+  equals?: string;
+  does_not_equal?: string;
+  contains?: string;
+  does_not_contain?: string;
+}
+
+interface NumberFilter {
+  equals?: number;
+  does_not_equal?: number;
+  greater_than?: number;
+  less_than?: number;
+  greater_than_or_equal_to?: number;
+  less_than_or_equal_to?: number;
+}
+
+interface SelectFilter {
+  equals?: string;
+  does_not_equal?: string;
+}
+
+interface MultiSelectFilter {
+  contains?: string;
+  does_not_contain?: string;
+}
+
+interface CheckboxFilter {
+  equals?: boolean;
+}
+
+interface DateFilter {
+  equals?: string;
+  before?: string;
+  after?: string;
+  on_or_before?: string;
+  on_or_after?: string;
+}
+
+interface PropertyFilter {
+  property: string;
+  title?: TextFilter;
+  rich_text?: TextFilter;
+  number?: NumberFilter;
+  select?: SelectFilter;
+  status?: SelectFilter;
+  multi_select?: MultiSelectFilter;
+  checkbox?: CheckboxFilter;
+  date?: DateFilter;
+}
+
+interface CompoundFilter {
+  and?: PropertyFilter[];
+  or?: PropertyFilter[];
+}
+
+type NotionFilter = PropertyFilter | CompoundFilter;
+
+// Notionソートの型定義
+interface PropertySort {
+  property: string;
+  direction: 'ascending' | 'descending';
+}
+
+interface TimestampSort {
+  timestamp: 'created_time' | 'last_edited_time';
+  direction: 'ascending' | 'descending';
+}
+
+type NotionSort = PropertySort | TimestampSort;
+
 // プロパティ値からテキストを抽出
 export function extractPropertyValue(
   property: Record<string, unknown>
@@ -78,8 +149,7 @@ export function extractPropertyValue(
 export function parseFilter(
   filterStr: string,
   schema: Record<string, { type: string }>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any | null {
+): PropertyFilter | null {
   // サポートする演算子: =, !=, >, <, >=, <=, contains, !contains
   const match = filterStr.match(
     /^(.+?)\s*(!=|>=|<=|=|>|<|contains|!contains)\s*(.+)$/
@@ -196,10 +266,8 @@ export function parseFilter(
 export function parseSort(
   sortStr: string,
   schema: Record<string, { type: string }>
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-): any[] {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sorts: any[] = [];
+): NotionSort[] {
+  const sorts: NotionSort[] = [];
 
   const parts = sortStr.split(',');
   for (const part of parts) {
@@ -270,13 +338,11 @@ export const queryCommand = new Command('query')
       outputHandler.debug('Schema:', schema);
 
       // フィルタを構築
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let filter: any | undefined;
+      let filter: NotionFilter | undefined;
       if (options.filter && options.filter.length > 0) {
         const filters = options.filter
           .map((f) => parseFilter(f, schema))
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .filter((f): f is any => f !== null);
+          .filter((f): f is PropertyFilter => f !== null);
 
         if (filters.length === 1) {
           filter = filters[0];
@@ -287,18 +353,18 @@ export const queryCommand = new Command('query')
       outputHandler.debug('Filter:', filter);
 
       // ソートを構築
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let sorts: any[] | undefined;
+      let sorts: NotionSort[] | undefined;
       if (options.sort && options.sort.length > 0) {
         sorts = options.sort.flatMap((s) => parseSort(s, schema));
       }
       outputHandler.debug('Sorts:', sorts);
 
       // クエリ実行
+      // Notion SDK の型定義は非常に複雑なため、ここではキャストを使用
       const response = await client.queryDatabase({
         database_id: databaseId,
-        filter,
-        sorts,
+        filter: filter as Parameters<typeof client.queryDatabase>[0]['filter'],
+        sorts: sorts as Parameters<typeof client.queryDatabase>[0]['sorts'],
         page_size: parseInt(options.limit || '50', 10),
       });
 

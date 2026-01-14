@@ -7,6 +7,13 @@ import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
 import { PageResolver } from '../../lib/command-utils/page-resolver.js';
 import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints.js';
 
+// Notionプロパティ値の型定義
+type PageProperty = PageObjectResponse['properties'][string];
+
+interface MultiSelectOption {
+  name: string;
+}
+
 export const exportCommand = new Command('export')
   .description('データベースをエクスポート')
   .argument('<database_id_or_url>', 'データベースIDまたはURL')
@@ -105,20 +112,21 @@ export const exportCommand = new Command('export')
   );
 
 // プロパティの値をフォーマットする補助関数
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function formatPropertyValue(property: any): string {
+function formatPropertyValue(property: PageProperty | undefined): string {
   if (!property) return '';
 
   switch (property.type) {
     case 'title':
+      return property.title?.[0]?.plain_text || '';
     case 'rich_text':
-      return property[property.type]?.[0]?.plain_text || '';
+      return property.rich_text?.[0]?.plain_text || '';
     case 'select':
       return property.select?.name || '';
     case 'multi_select':
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return (
-        property.multi_select?.map((item: any) => item.name).join(';') || ''
+        property.multi_select
+          ?.map((item: MultiSelectOption) => item.name)
+          .join(';') || ''
       );
     case 'date':
       return property.date?.start || '';

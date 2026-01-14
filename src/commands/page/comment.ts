@@ -6,6 +6,20 @@ import { PageResolver } from '../../lib/command-utils/page-resolver.js';
 import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
 import { OutputHandler } from '../../lib/command-utils/output-handler.js';
 
+// Notionコメントの型定義
+interface RichTextItem {
+  plain_text?: string;
+  text?: { content: string };
+}
+
+interface NotionComment {
+  id: string;
+  discussion_id: string;
+  created_time: string;
+  created_by: { id: string };
+  rich_text: RichTextItem[];
+}
+
 // NotionのURLまたはIDからページIDを抽出する関数
 async function extractPageId(input: string): Promise<string> {
   const resolver = await PageResolver.create();
@@ -15,16 +29,14 @@ async function extractPageId(input: string): Promise<string> {
 // コメントをコンソールに表示するための関数
 async function formatComment(
   client: NotionClient,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  comment: any,
+  comment: NotionComment,
   options: { indentLevel?: number; showDiscussionId?: boolean } = {}
 ) {
   const { indentLevel = 0, showDiscussionId = false } = options;
   const indent = '  '.repeat(indentLevel);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const content = comment.rich_text
-    .map((rt: any) =>
+    .map((rt: RichTextItem) =>
       'plain_text' in rt ? rt.plain_text : rt.text?.content || ''
     )
     .join('');
@@ -46,10 +58,10 @@ async function formatComment(
 }
 
 // コメントを階層構造に整理する関数
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function organizeCommentThreads(comments: any[]) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const threads: Record<string, any[]> = {};
+function organizeCommentThreads(
+  comments: NotionComment[]
+): Record<string, NotionComment[]> {
+  const threads: Record<string, NotionComment[]> = {};
 
   // コメントをスレッドごとに分類
   comments.forEach((comment) => {
@@ -113,9 +125,11 @@ const getSubCommand = new Command('get')
           return;
         }
 
+        const notionComments = response.results as NotionComment[];
+
         if (options.format === 'thread') {
           // スレッド形式で表示
-          const threads = organizeCommentThreads(response.results);
+          const threads = organizeCommentThreads(notionComments);
           const formattedThreads = [];
 
           for (const comments of Object.values(threads)) {
@@ -138,7 +152,7 @@ const getSubCommand = new Command('get')
         } else {
           // マークダウン形式で表示（従来通り）
           const comments = await Promise.all(
-            response.results.map((comment) =>
+            notionComments.map((comment) =>
               formatComment(client, comment, {
                 showDiscussionId: options.detail,
               })
@@ -254,7 +268,9 @@ const listThreadsSubCommand = new Command('list-threads')
       }
 
       // スレッドごとに整理
-      const threads = organizeCommentThreads(response.results);
+      const threads = organizeCommentThreads(
+        response.results as NotionComment[]
+      );
 
       console.log(
         `${Object.keys(threads).length}個のコメントスレッドがあります：\n`
@@ -262,15 +278,13 @@ const listThreadsSubCommand = new Command('list-threads')
 
       for (const [threadId, comments] of Object.entries(threads)) {
         const firstComment = comments[0];
+        const fullText = firstComment.rich_text
+          .map((rt: RichTextItem) =>
+            'plain_text' in rt ? rt.plain_text : rt.text?.content || ''
+          )
+          .join('');
         const content =
-          firstComment.rich_text
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            .map((rt: any) =>
-              'plain_text' in rt ? rt.plain_text : rt.text?.content || ''
-            )
-            .join('')
-            .substring(0, 50) +
-          (firstComment.rich_text.join('').length > 50 ? '...' : '');
+          fullText.substring(0, 50) + (fullText.length > 50 ? '...' : '');
 
         console.log(`スレッドID: ${threadId}`);
         console.log(`コメント数: ${comments.length}`);
