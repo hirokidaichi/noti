@@ -26,3 +26,11 @@
 ## Documentation
 
 Japanese is the primary language for user-facing documentation and error messages
+
+## Agent Skill
+
+notiをCLIツールとして使用する場合のドキュメントは `.claude/skills/noti/` に配置されています：
+
+- `SKILL.md` - コマンドの使い方ガイド
+- `QUICKREF.md` - クイックリファレンス
+- `examples/` - ワークフロー例
