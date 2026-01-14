@@ -16,9 +16,19 @@ import {
 export class CSVImporter implements DataImporter {
   private data: string[][];
   private mapping: DataMapping[] = [];
+  private skipHeader: boolean;
+  private hasCustomHeaders = false;
 
-  constructor(csvContent: string) {
-    this.data = parseCSV(csvContent);
+  constructor(csvContent: string, options?: {
+    skipHeader?: boolean;
+    delimiter?: string;
+  }) {
+    this.skipHeader = options?.skipHeader || false;
+
+    // Note: 区切り文字カスタマイズ機能は一時的に無効化
+    // options?.delimiter は将来のバージョンで対応
+
+    this.data = parseCSV(csvContent) as string[][];
   }
 
   private reportProgress(
@@ -32,14 +42,29 @@ export class CSVImporter implements DataImporter {
 
   getHeaders(): string[] {
     if (this.data.length === 0) return [];
+
+    // ヘッダーをスキップする場合は、最初の行の列数に基づいて生成したヘッダーを返す
+    if (this.skipHeader && !this.hasCustomHeaders) {
+      const firstRow = this.data[0];
+      return firstRow.map((_, index) => `column${index + 1}`);
+    }
+
     return this.data[0];
   }
 
   getData(): Record<string, unknown>[] {
-    if (this.data.length <= 1) return [];
-    return this.data.slice(1).map((row) => {
-      return this.getHeaders().reduce((obj, header, index) => {
-        obj[header] = row[index];
+    if (this.data.length === 0) return [];
+
+    // スキップヘッダーが有効な場合は最初の行からデータを開始
+    const startIndex = this.skipHeader ? 0 : 1;
+
+    // データが不足している場合
+    if (this.data.length <= startIndex && !this.skipHeader) return [];
+
+    const headers = this.getHeaders();
+    return this.data.slice(startIndex).map((row) => {
+      return headers.reduce((obj, header, index) => {
+        obj[header] = index < row.length ? row[index] : '';
         return obj;
       }, {} as Record<string, unknown>);
     });
@@ -231,6 +256,14 @@ export class CSVImporter implements DataImporter {
       };
     }
 
+    // ヘッダースキップモードでカスタムヘッダーが設定されていない場合は警告
+    if (this.skipHeader && !this.hasCustomHeaders) {
+      // エラーではなく続行可能な警告
+      console.warn(
+        'ヘッダースキップモードでマッピングが設定されていません。自動生成されたフィールド名を使用します。',
+      );
+    }
+
     this.reportProgress(progressCallback, {
       phase: 'validation',
       current: 2,
@@ -271,6 +304,8 @@ export class CSVImporter implements DataImporter {
 
   mapData(mapping: DataMapping[]): void {
     this.mapping = mapping;
+    // マッピングが設定された場合、カスタムヘッダーが使用されていると判断
+    this.hasCustomHeaders = mapping.length > 0;
   }
 
   private transformRow(row: string[]): Record<string, unknown> {

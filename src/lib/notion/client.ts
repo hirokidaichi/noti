@@ -246,7 +246,7 @@ export class NotionClient {
     });
   }
 
-  async createComment(pageId: string, text: string) {
+  async createComment(pageId: string, text: string, discussionId?: string) {
     return await this.client.comments.create({
       parent: {
         page_id: pageId,
@@ -257,7 +257,19 @@ export class NotionClient {
           content: text,
         },
       }],
+      ...(discussionId && { discussion_id: discussionId }),
     });
+  }
+
+  updateComment(_commentId: string, _text: string) {
+    // Notion APIでは現在コメントの更新がサポートされていないため
+    // 削除して再作成する方法を実装
+    throw new Error('コメントの更新はNotionのAPI仕様上サポートされていません');
+  }
+
+  deleteComment(_commentId: string) {
+    // Notion APIでは現在コメントの削除がサポートされていないため
+    throw new Error('コメントの削除はNotionのAPI仕様上サポートされていません');
   }
 
   async listDatabases(params: {
@@ -329,6 +341,114 @@ export class NotionClient {
       database_id: databaseId,
       properties,
     });
+  }
+
+  // インポート機能用のメソッド
+  async getDatabaseSchema(databaseId: string): Promise<{
+    properties: Record<
+      string,
+      { type: string; name?: string; required?: boolean }
+    >;
+  }> {
+    const database = await this.getDatabase(databaseId);
+    return {
+      properties: Object.entries(database.properties).reduce(
+        (acc, [key, property]) => {
+          // @ts-ignore - Notionの型定義が複雑なため
+          acc[key] = {
+            type: property.type,
+            name: key.toLowerCase(),
+            required: key === 'Name' || key === 'title', // タイトルプロパティは必須
+          };
+          return acc;
+        },
+        {} as Record<
+          string,
+          { type: string; name?: string; required?: boolean }
+        >,
+      ),
+    };
+  }
+
+  async createPages(
+    databaseId: string,
+    pages: Record<string, unknown>[],
+  ): Promise<void> {
+    // バッチで処理するためのヘルパー関数
+    const createPageBatch = async (batch: Record<string, unknown>[]) => {
+      const promises = batch.map((page) => {
+        const properties = this.convertToNotionProperties(page);
+        return this.createDatabasePage(databaseId, properties);
+      });
+
+      await Promise.all(promises);
+    };
+
+    // バッチサイズは10件ずつ（APIレート制限を考慮）
+    const batchSize = 10;
+    for (let i = 0; i < pages.length; i += batchSize) {
+      const batch = pages.slice(i, i + batchSize);
+      await createPageBatch(batch);
+
+      // APIレート制限対策の待機時間
+      if (i + batchSize < pages.length) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  }
+
+  private convertToNotionProperties(
+    data: Record<string, unknown>,
+  ): CreatePageParameters['properties'] {
+    const properties: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      // nullまたはundefinedの場合はスキップ
+      if (value === null || value === undefined) continue;
+
+      if (key === 'Name' || key === 'title') {
+        properties[key] = {
+          title: [{
+            text: {
+              content: String(value),
+            },
+          }],
+        };
+        continue;
+      }
+
+      // 値の型に基づいてプロパティを設定
+      switch (typeof value) {
+        case 'string':
+          properties[key] = { rich_text: [{ text: { content: value } }] };
+          break;
+
+        case 'number':
+          properties[key] = { number: value };
+          break;
+
+        case 'boolean':
+          properties[key] = { checkbox: value };
+          break;
+
+        case 'object':
+          if (Array.isArray(value)) {
+            // 配列の場合はマルチセレクトと仮定
+            properties[key] = {
+              multi_select: value.map((item) => ({ name: String(item) })),
+            };
+          } else if (value instanceof Date) {
+            properties[key] = {
+              date: {
+                start: value.toISOString().split('T')[0],
+              },
+            };
+          }
+          break;
+      }
+    }
+
+    return properties as CreatePageParameters['properties'];
   }
 
   // データベースページの移動/コピー

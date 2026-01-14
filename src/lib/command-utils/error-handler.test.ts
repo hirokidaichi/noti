@@ -113,9 +113,25 @@ Deno.test('ErrorHandler', async (t) => {
     cleanup();
   });
 
-  await t.step('handleError - 不明なエラーの処理', () => {
+  await t.step('handleError - 文字列エラーの処理', () => {
     setup();
     const error = 'エラー文字列';
+
+    try {
+      errorHandler.handleError(error, 'テスト操作');
+    } catch {
+      // never関数なので必ずエラーになる
+    }
+
+    assertSpyCall(mockError, 0, {
+      args: ['テスト操作: エラー文字列'],
+    });
+    cleanup();
+  });
+
+  await t.step('handleError - 不明なエラーの処理', () => {
+    setup();
+    const error = { unknown: 'error' };
 
     try {
       errorHandler.handleError(error, 'テスト操作');

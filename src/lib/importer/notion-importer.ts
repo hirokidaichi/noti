@@ -10,7 +10,7 @@ import {
 } from './types.ts';
 
 export class NotionImporter {
-  private csvImporter: CSVImporter;
+  public csvImporter: CSVImporter;
   private notionClient: NotionClient & Partial<Client>;
   private config: NotionImportConfig;
 
@@ -20,7 +20,10 @@ export class NotionImporter {
     config: NotionImportConfig,
     notionClientClass?: new (apiKey: string) => NotionClient,
   ) {
-    this.csvImporter = new CSVImporter(csvContent);
+    this.csvImporter = new CSVImporter(csvContent, {
+      skipHeader: config.skipHeader,
+      delimiter: config.delimiter,
+    });
     const client = notionClientClass
       ? new notionClientClass(notionApiKey)
       : new Client({ auth: notionApiKey }) as unknown as NotionClient;
@@ -64,7 +67,20 @@ export class NotionImporter {
       case 'date':
         return 'date';
       case 'multi_select':
+      case 'relation':
+      case 'files':
+      case 'people':
         return 'array';
+      case 'formula':
+        return 'string';
+      case 'rich_text':
+      case 'url':
+      case 'email':
+      case 'phone_number':
+      case 'title':
+      case 'select':
+      case 'status':
+        return 'string';
       default:
         return 'string';
     }

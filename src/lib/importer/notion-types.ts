@@ -28,11 +28,13 @@ export interface NotionImportConfig {
   schema: {
     properties: Record<string, {
       type: string;
-      name: string;
+      name?: string;
       required?: boolean;
     }>;
   };
   batchSize?: number;
+  skipHeader?: boolean;
+  delimiter?: string;
 }
 
 export interface NotionClient extends Client {

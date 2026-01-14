@@ -1,4 +1,4 @@
-name: Unit Tests
+name: Tests
 
 on:
   push:
@@ -9,15 +9,34 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
+      - uses: actions/checkout@v3
+      
       - name: Setup Deno
         uses: denoland/setup-deno@v1
         with:
-          deno-version: v2.x
-
-      - name: Run all checks
-        run: deno task check-all
+          deno-version: v1.x
+      
+      - name: Verify formatting
+        run: deno fmt --check
+      
+      - name: Run linter
+        run: deno lint
+      
+      - name: Type check
+        run: deno check src/
+      
+      - name: Run unit tests with coverage
+        run: deno test -A --coverage=coverage src/
+      
+      - name: Run e2e tests
+        run: deno test -A e2e/
+      
+      - name: Generate coverage report
+        run: deno coverage coverage --lcov --output=coverage.lcov
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.lcov
+          fail_ci_if_error: false
