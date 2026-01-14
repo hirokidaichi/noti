@@ -1,5 +1,5 @@
 import { Client, LogLevel } from '@notionhq/client';
-import { Config } from '../config/config.ts';
+import { Config } from '../config/config.js';
 import type {
   CreateDatabaseParameters,
   CreateDatabaseResponse,
@@ -13,7 +13,7 @@ import type {
 } from '@notionhq/client/build/src/api-endpoints.js';
 
 // Notionのブロック型定義
-interface BlockObject {
+interface _BlockObject {
   object: 'block';
   type: string;
   [key: string]: unknown;
@@ -45,7 +45,7 @@ interface NotionComment {
   }>;
 }
 
-interface CommentListResponse {
+interface _CommentListResponse {
   object: 'list';
   results: NotionComment[];
   next_cursor: string | null;
@@ -53,7 +53,7 @@ interface CommentListResponse {
 }
 
 // Notionのプロパティ型定義
-interface PageProperties {
+interface _PageProperties {
   [key: string]: {
     type: string;
     [key: string]: unknown;
@@ -61,7 +61,7 @@ interface PageProperties {
 }
 
 // Notionのプロパティ値の型定義
-type PropertyValueType =
+type _PropertyValueType =
   | { title: Array<{ text: { content: string } }> }
   | { rich_text: Array<{ text: { content: string } }> }
   | { number: number }
@@ -90,7 +90,7 @@ export class NotionClient {
   constructor(config: Config) {
     if (!config.token) {
       throw new Error(
-        'Notion APIトークンが設定されていません。`noti configure` を実行してください。',
+        'Notion APIトークンが設定されていません。`noti configure` を実行してください。'
       );
     }
 
@@ -147,6 +147,22 @@ export class NotionClient {
     });
   }
 
+  async getBlock(blockId: string) {
+    return await this.client.blocks.retrieve({
+      block_id: blockId,
+    });
+  }
+
+  async updateBlock(
+    blockId: string,
+    content: Record<string, unknown>
+  ): Promise<unknown> {
+    return await this.client.blocks.update({
+      block_id: blockId,
+      ...content,
+    });
+  }
+
   async appendBlocks(pageId: string, blocks: unknown[]) {
     return await this.client.blocks.children.append({
       block_id: pageId,
@@ -173,22 +189,23 @@ export class NotionClient {
     const properties = {
       ...(parentType === 'database_id'
         ? {
-          Name: {
-            type: 'title',
-            title: params.title ? [{ text: { content: params.title } }] : [],
-          },
-        }
+            Name: {
+              type: 'title',
+              title: params.title ? [{ text: { content: params.title } }] : [],
+            },
+          }
         : {
-          title: {
-            type: 'title',
-            title: params.title ? [{ text: { content: params.title } }] : [],
-          },
-        }),
+            title: {
+              type: 'title',
+              title: params.title ? [{ text: { content: params.title } }] : [],
+            },
+          }),
     } as Parameters<typeof this.client.pages.create>[0]['properties'];
 
-    const parent = parentType === 'database_id'
-      ? { database_id: params.parentId }
-      : { page_id: params.parentId };
+    const parent =
+      parentType === 'database_id'
+        ? { database_id: params.parentId }
+        : { page_id: params.parentId };
 
     return await this.client.pages.create({
       parent,
@@ -212,13 +229,16 @@ export class NotionClient {
     });
   }
 
-  async updatePage(pageId: string, properties: {
-    title: Array<{
-      text: {
-        content: string;
-      };
-    }>;
-  }) {
+  async updatePage(
+    pageId: string,
+    properties: {
+      title: Array<{
+        text: {
+          content: string;
+        };
+      }>;
+    }
+  ) {
     return await this.client.pages.update({
       page_id: pageId,
       properties: {
@@ -251,12 +271,14 @@ export class NotionClient {
       parent: {
         page_id: pageId,
       },
-      rich_text: [{
-        type: 'text',
-        text: {
-          content: text,
+      rich_text: [
+        {
+          type: 'text',
+          text: {
+            content: text,
+          },
         },
-      }],
+      ],
       ...(discussionId && { discussion_id: discussionId }),
     });
   }
@@ -272,10 +294,12 @@ export class NotionClient {
     throw new Error('コメントの削除はNotionのAPI仕様上サポートされていません');
   }
 
-  async listDatabases(params: {
-    page_size?: number;
-    start_cursor?: string;
-  } = {}) {
+  async listDatabases(
+    params: {
+      page_size?: number;
+      start_cursor?: string;
+    } = {}
+  ) {
     return await this.client.search({
       filter: {
         property: 'object',
@@ -292,7 +316,7 @@ export class NotionClient {
 
   async createDatabasePage(
     databaseId: string,
-    properties: CreatePageParameters['properties'],
+    properties: CreatePageParameters['properties']
   ) {
     return await this.client.pages.create({
       parent: { database_id: databaseId },
@@ -302,7 +326,7 @@ export class NotionClient {
 
   async updateDatabasePage(
     pageId: string,
-    properties: CreatePageParameters['properties'],
+    properties: CreatePageParameters['properties']
   ) {
     return await this.client.pages.update({
       page_id: pageId,
@@ -335,7 +359,7 @@ export class NotionClient {
   // データベースのプロパティ追加/更新
   async updateDatabaseProperties(
     databaseId: string,
-    properties: DatabasePropertyConfig,
+    properties: DatabasePropertyConfig
   ): Promise<UpdateDatabaseResponse> {
     return await this.updateDatabase({
       database_id: databaseId,
@@ -354,7 +378,6 @@ export class NotionClient {
     return {
       properties: Object.entries(database.properties).reduce(
         (acc, [key, property]) => {
-          // @ts-ignore - Notionの型定義が複雑なため
           acc[key] = {
             type: property.type,
             name: key.toLowerCase(),
@@ -365,14 +388,14 @@ export class NotionClient {
         {} as Record<
           string,
           { type: string; name?: string; required?: boolean }
-        >,
+        >
       ),
     };
   }
 
   async createPages(
     databaseId: string,
-    pages: Record<string, unknown>[],
+    pages: Record<string, unknown>[]
   ): Promise<void> {
     // バッチで処理するためのヘルパー関数
     const createPageBatch = async (batch: Record<string, unknown>[]) => {
@@ -398,7 +421,7 @@ export class NotionClient {
   }
 
   private convertToNotionProperties(
-    data: Record<string, unknown>,
+    data: Record<string, unknown>
   ): CreatePageParameters['properties'] {
     const properties: Record<string, unknown> = {};
 
@@ -408,11 +431,13 @@ export class NotionClient {
 
       if (key === 'Name' || key === 'title') {
         properties[key] = {
-          title: [{
-            text: {
-              content: String(value),
+          title: [
+            {
+              text: {
+                content: String(value),
+              },
             },
-          }],
+          ],
         };
         continue;
       }
@@ -459,20 +484,22 @@ export class NotionClient {
     with_content?: boolean;
   }) {
     // 1. 元のページの情報を取得
-    const sourcePage = await this.getPage(params.page_id) as PageObjectResponse;
+    const sourcePage = (await this.getPage(
+      params.page_id
+    )) as PageObjectResponse;
     const sourceBlocks = params.with_content
       ? await this.getBlocks(params.page_id)
       : null;
 
     // 2. ターゲットデータベースのスキーマを取得
-    const targetDatabase = await this.client.databases.retrieve({
+    const targetDatabase = (await this.client.databases.retrieve({
       database_id: params.target_database_id,
-    }) as DatabaseObjectResponse;
+    })) as DatabaseObjectResponse;
 
     // 3. プロパティの互換性を確保
     const compatibleProperties = this.getCompatibleProperties(
       sourcePage,
-      targetDatabase,
+      targetDatabase
     ) as CreatePageParameters['properties'];
 
     // タイトルプロパティが必須なので、存在しない場合は追加
@@ -489,7 +516,7 @@ export class NotionClient {
     // 4. 新しいページを作成
     const newPage = await this.createDatabasePage(
       params.target_database_id,
-      compatibleProperties,
+      compatibleProperties
     );
 
     // 5. コンテンツをコピー（必要な場合）
@@ -544,26 +571,27 @@ export class NotionClient {
 
   private getCompatibleProperties(
     sourcePage: PageObjectResponse,
-    targetDatabase: DatabaseObjectResponse,
+    targetDatabase: DatabaseObjectResponse
   ): Record<string, unknown> {
-    // deno-lint-ignore no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const compatibleProperties: Record<string, any> = {};
-    // deno-lint-ignore no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sourceProperties = (sourcePage as any).properties;
 
     for (const [key, sourceValue] of Object.entries(sourceProperties)) {
       const schema = targetDatabase.properties[key];
       if (!schema) continue;
 
-      // deno-lint-ignore no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const typedSourceValue = sourceValue as any;
       switch (typedSourceValue.type) {
         case 'select':
           if (
             typedSourceValue.select &&
-            // deno-lint-ignore no-explicit-any
-            (schema as any).select.options.some((option: any) =>
-              option.name === typedSourceValue.select.name
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (schema as any).select.options.some(
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              (option: any) => option.name === typedSourceValue.select.name
             )
           ) {
             compatibleProperties[key] = typedSourceValue;
@@ -573,13 +601,13 @@ export class NotionClient {
         case 'multi_select': {
           // マルチセレクトオプションの互換性チェック
           const validOptions = typedSourceValue.multi_select.filter(
-            // deno-lint-ignore no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (option: any) =>
-              // deno-lint-ignore no-explicit-any
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (schema as any).multi_select.options.some(
-                // deno-lint-ignore no-explicit-any
-                (schemaOption: any) => schemaOption.name === option.name,
-              ),
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (schemaOption: any) => schemaOption.name === option.name
+              )
           );
           if (validOptions.length > 0) {
             compatibleProperties[key] = {
@@ -592,9 +620,9 @@ export class NotionClient {
 
         case 'relation':
           if (
-            // deno-lint-ignore no-explicit-any
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (schema as any).relation.database_id ===
-              typedSourceValue.relation[0]?.database_id
+            typedSourceValue.relation[0]?.database_id
           ) {
             compatibleProperties[key] = typedSourceValue;
           }
