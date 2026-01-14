@@ -25,9 +25,8 @@ describe('Notion Client Page Operations', () => {
       testPageId = page.id;
 
       const retrievedPage = await client.getPage(page.id);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
-        (retrievedPage as any).properties.title.title[0].text.content
+        (retrievedPage as any).properties.title.title[0].text.content // eslint-disable-line @typescript-eslint/no-explicit-any
       ).toBe('Test Page');
     });
 
@@ -76,13 +75,11 @@ describe('Notion Client Page Operations', () => {
       const retrievedBlocks = await client.getBlocks(testPageId);
 
       expect(retrievedBlocks.results.length).toBe(4);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
-        (retrievedBlocks.results[0] as any).heading_1.rich_text[0].text.content
+        (retrievedBlocks.results[0] as any).heading_1.rich_text[0].text.content // eslint-disable-line @typescript-eslint/no-explicit-any
       ).toBe('Test Heading');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
-        (retrievedBlocks.results[1] as any).paragraph.rich_text[0].text.content
+        (retrievedBlocks.results[1] as any).paragraph.rich_text[0].text.content // eslint-disable-line @typescript-eslint/no-explicit-any
       ).toBe('Test Paragraph');
     });
 
@@ -93,9 +90,8 @@ describe('Notion Client Page Operations', () => {
 
       const updatedBlocks = await client.getBlocks(testPageId);
       expect(updatedBlocks.results.length).toBe(3);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
-        (updatedBlocks.results[0] as any).paragraph.rich_text[0].text.content
+        (updatedBlocks.results[0] as any).paragraph.rich_text[0].text.content // eslint-disable-line @typescript-eslint/no-explicit-any
       ).toBe('Test Paragraph');
     });
   });

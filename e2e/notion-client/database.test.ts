@@ -68,8 +68,8 @@ describe('Notion Client Database Operations', () => {
       });
 
       expect(updated.properties.Tags).toBeDefined();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (updated.properties.Tags as any).multi_select.options[0].name
       ).toBe('Important');
     });
@@ -93,8 +93,8 @@ describe('Notion Client Database Operations', () => {
       });
 
       expect(result.results.length).toBe(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (result.results[0] as any).properties.Name.title[0].text.content
       ).toBe('Test Entry');
     });
@@ -173,9 +173,8 @@ describe('Notion Client Database Operations', () => {
       // コンテンツが正しくコピーされたか確認
       const blocks = await client.getBlocks(copiedPage.id);
       expect(blocks.results.length).toBe(1);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(
-        (blocks.results[0] as any).paragraph.rich_text[0].text.content
+        (blocks.results[0] as any).paragraph.rich_text[0].text.content // eslint-disable-line @typescript-eslint/no-explicit-any
       ).toBe('Test content');
     });
   });

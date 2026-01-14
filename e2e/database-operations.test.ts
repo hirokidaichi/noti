@@ -92,8 +92,8 @@ describe('Database Operations', () => {
     });
 
     expect(result.results.length).toBe(1);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     expect(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (result.results[0] as any).properties.Name.title[0].text.content
     ).toBe('Test Entry');
   });

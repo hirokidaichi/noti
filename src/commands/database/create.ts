@@ -246,11 +246,13 @@ export const createCommand = new Command('create')
           return;
         }
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const response = await notionClient.createDatabase({
           parent: { page_id: parentId },
           title: [{ text: { content: title } }],
-          properties: propertyConfig as any,
+          // Notion SDK's property types are very complex, using type assertion here
+          properties: propertyConfig as Parameters<
+            typeof notionClient.createDatabase
+          >[0]['properties'],
         });
 
         logger.success('データベースを作成しました');

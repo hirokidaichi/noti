@@ -73,9 +73,8 @@ const getSubCommand = new Command('get')
         let output = '';
         if (options.format === 'markdown') {
           const converter = new BlockToMarkdown();
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const propertiesMarkdown = converter.convertProperties(
-            page.properties as any
+            page.properties as Parameters<typeof converter.convertProperties>[0]
           );
           const blocksMarkdown = converter.convert(
             blocks.results as NotionBlocks[]
