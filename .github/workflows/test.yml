@@ -9,6 +9,8 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,10 +36,8 @@ jobs:
         run: npx vitest run src/ --coverage
 
       - name: Run e2e tests
-        if: ${{ secrets.NOTION_API_KEY != '' }}
+        if: ${{ env.NOTION_API_KEY != '' }}
         run: npm run e2e
-        env:
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
