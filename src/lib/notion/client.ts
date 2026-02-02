@@ -5,12 +5,29 @@ import type {
   CreateDatabaseResponse,
   CreatePageParameters,
   DatabaseObjectResponse,
+  DataSourceObjectResponse,
+  GetDatabaseResponse,
+  GetDataSourceResponse,
   PageObjectResponse,
-  QueryDatabaseParameters,
-  QueryDatabaseResponse,
+  QueryDataSourceParameters,
+  QueryDataSourceResponse,
   UpdateDatabaseParameters,
   UpdateDatabaseResponse,
 } from '@notionhq/client/build/src/api-endpoints.js';
+
+// 型ガード: DatabaseObjectResponseかどうかを判定（data_sourcesプロパティで判定）
+function isDatabaseObjectResponse(
+  response: GetDatabaseResponse
+): response is DatabaseObjectResponse {
+  return response.object === 'database' && 'data_sources' in response;
+}
+
+// 型ガード: DataSourceObjectResponseかどうかを判定
+function isDataSourceObjectResponse(
+  response: GetDataSourceResponse
+): response is DataSourceObjectResponse {
+  return response.object === 'data_source' && 'properties' in response;
+}
 
 // Notionのブロック型定義
 interface _BlockObject {
@@ -76,9 +93,12 @@ type _PropertyValueType =
   | { relation: Array<{ id: string }> }
   | { status: { name: string } };
 
-// データベースプロパティの型定義
+// データベースプロパティの型定義（新API: initial_data_source.properties）
+type InitialDataSourceType = NonNullable<
+  CreateDatabaseParameters['initial_data_source']
+>;
 type DatabasePropertyConfigType = NonNullable<
-  CreateDatabaseParameters['properties']
+  InitialDataSourceType['properties']
 >;
 type DatabasePropertyConfig = {
   [key: string]: DatabasePropertyConfigType[string];
@@ -118,7 +138,7 @@ export class NotionClient {
     page_size?: number;
     filter?: {
       property: 'object';
-      value: 'page' | 'database';
+      value: 'page' | 'data_source';
     };
     start_cursor?: string;
   }) {
@@ -303,7 +323,7 @@ export class NotionClient {
     return await this.client.search({
       filter: {
         property: 'object',
-        value: 'database',
+        value: 'data_source',
       },
       page_size: params.page_size,
       start_cursor: params.start_cursor,
@@ -314,12 +334,42 @@ export class NotionClient {
     });
   }
 
+  // データベースIDからdata_source_idを取得
+  async getDataSourceId(databaseId: string): Promise<string> {
+    const database = await this.getDatabase(databaseId);
+    if (isDatabaseObjectResponse(database) && database.data_sources?.[0]) {
+      return database.data_sources[0].id;
+    }
+    // フォールバック: data_sourcesがない場合はdatabaseIdをそのまま使用
+    return databaseId;
+  }
+
+  // DataSourceを取得
+  async getDataSource(dataSourceId: string): Promise<GetDataSourceResponse> {
+    return await this.client.dataSources.retrieve({
+      data_source_id: dataSourceId,
+    });
+  }
+
+  // データベースIDからプロパティを含むDataSourceを取得
+  async getDataSourceWithProperties(
+    databaseId: string
+  ): Promise<DataSourceObjectResponse> {
+    const dataSourceId = await this.getDataSourceId(databaseId);
+    const dataSource = await this.getDataSource(dataSourceId);
+    if (!isDataSourceObjectResponse(dataSource)) {
+      throw new Error('データソースの取得に失敗しました');
+    }
+    return dataSource;
+  }
+
   async createDatabasePage(
     databaseId: string,
     properties: CreatePageParameters['properties']
   ) {
+    const dataSourceId = await this.getDataSourceId(databaseId);
     return await this.client.pages.create({
-      parent: { database_id: databaseId },
+      parent: { type: 'data_source_id', data_source_id: dataSourceId },
       properties,
     });
   }
@@ -334,13 +384,19 @@ export class NotionClient {
     });
   }
 
-  // データベースの作成
+  // データベースの作成（新API: initial_data_sourceでプロパティを指定）
   async createDatabase(params: {
     parent: CreateDatabaseParameters['parent'];
     title: CreateDatabaseParameters['title'];
     properties: DatabasePropertyConfig;
   }): Promise<CreateDatabaseResponse> {
-    return await this.client.databases.create(params);
+    return await this.client.databases.create({
+      parent: params.parent,
+      title: params.title,
+      initial_data_source: {
+        properties: params.properties,
+      },
+    });
   }
 
   // データベースの更新
@@ -367,16 +423,16 @@ export class NotionClient {
     });
   }
 
-  // インポート機能用のメソッド
+  // インポート機能用のメソッド（新API: DataSourceからプロパティを取得）
   async getDatabaseSchema(databaseId: string): Promise<{
     properties: Record<
       string,
       { type: string; name?: string; required?: boolean }
     >;
   }> {
-    const database = await this.getDatabase(databaseId);
+    const dataSource = await this.getDataSourceWithProperties(databaseId);
     return {
-      properties: Object.entries(database.properties).reduce(
+      properties: Object.entries(dataSource.properties).reduce(
         (acc, [key, property]) => {
           acc[key] = {
             type: property.type,
@@ -491,16 +547,16 @@ export class NotionClient {
       ? await this.getBlocks(params.page_id)
       : null;
 
-    // 2. ターゲットデータベースのスキーマを取得
-    const targetDatabase = (await this.client.databases.retrieve({
-      database_id: params.target_database_id,
-    })) as DatabaseObjectResponse;
+    // 2. ターゲットデータベースのスキーマを取得（新API: DataSourceから）
+    const targetDataSource = await this.getDataSourceWithProperties(
+      params.target_database_id
+    );
 
     // 3. プロパティの互換性を確保
-    const compatibleProperties = this.getCompatibleProperties(
+    const compatibleProperties = this.getCompatiblePropertiesFromDataSource(
       sourcePage,
-      targetDatabase
-    ) as CreatePageParameters['properties'];
+      targetDataSource
+    );
 
     // タイトルプロパティを元ページからコピー
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -515,7 +571,7 @@ export class NotionClient {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const [_titleKey, titleValue] = sourceTitleEntry as [string, any];
       // ターゲットDBのタイトルプロパティ名を探す
-      const targetTitleKey = Object.entries(targetDatabase.properties).find(
+      const targetTitleKey = Object.entries(targetDataSource.properties).find(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ([, schema]: [string, any]) => schema.type === 'title'
       )?.[0];
@@ -528,12 +584,12 @@ export class NotionClient {
 
     // タイトルプロパティが必須なので、存在しない場合はデフォルト値を追加
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const hasTitle = Object.values(compatibleProperties).some(
+    const hasTitle = Object.values(compatibleProperties || {}).some(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (prop: any) => prop?.title !== undefined
     );
     if (!hasTitle) {
-      const targetTitleKey = Object.entries(targetDatabase.properties).find(
+      const targetTitleKey = Object.entries(targetDataSource.properties).find(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         ([, schema]: [string, any]) => schema.type === 'title'
       )?.[0];
@@ -547,7 +603,7 @@ export class NotionClient {
     // 4. 新しいページを作成
     const newPage = await this.createDatabasePage(
       params.target_database_id,
-      compatibleProperties
+      compatibleProperties as CreatePageParameters['properties']
     );
 
     // 5. コンテンツをコピー（必要な場合）
@@ -586,13 +642,14 @@ export class NotionClient {
   // データベースのクエリ（拡張版）
   async queryDatabase(params: {
     database_id: string;
-    filter?: QueryDatabaseParameters['filter'];
-    sorts?: QueryDatabaseParameters['sorts'];
+    filter?: QueryDataSourceParameters['filter'];
+    sorts?: QueryDataSourceParameters['sorts'];
     page_size?: number;
     start_cursor?: string;
-  }): Promise<QueryDatabaseResponse> {
-    return await this.client.databases.query({
-      database_id: params.database_id,
+  }): Promise<QueryDataSourceResponse> {
+    const dataSourceId = await this.getDataSourceId(params.database_id);
+    return await this.client.dataSources.query({
+      data_source_id: dataSourceId,
       filter: params.filter,
       sorts: params.sorts,
       page_size: params.page_size,
@@ -600,9 +657,9 @@ export class NotionClient {
     });
   }
 
-  private getCompatibleProperties(
+  private getCompatiblePropertiesFromDataSource(
     sourcePage: PageObjectResponse,
-    targetDatabase: DatabaseObjectResponse
+    targetDataSource: DataSourceObjectResponse
   ): Record<string, unknown> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const compatibleProperties: Record<string, any> = {};
@@ -610,17 +667,18 @@ export class NotionClient {
     const sourceProperties = (sourcePage as any).properties;
 
     for (const [key, sourceValue] of Object.entries(sourceProperties)) {
-      const schema = targetDatabase.properties[key];
+      const schema = targetDataSource.properties[key];
       if (!schema) continue;
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const typedSourceValue = sourceValue as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const typedSchema = schema as any;
       switch (typedSourceValue.type) {
         case 'select':
           if (
             typedSourceValue.select &&
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (schema as any).select.options.some(
+            typedSchema.select?.options?.some(
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               (option: any) => option.name === typedSourceValue.select.name
             )
@@ -631,16 +689,15 @@ export class NotionClient {
 
         case 'multi_select': {
           // マルチセレクトオプションの互換性チェック
-          const validOptions = typedSourceValue.multi_select.filter(
+          const validOptions = typedSourceValue.multi_select?.filter(
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (option: any) =>
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (schema as any).multi_select.options.some(
+              typedSchema.multi_select?.options?.some(
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (schemaOption: any) => schemaOption.name === option.name
               )
           );
-          if (validOptions.length > 0) {
+          if (validOptions && validOptions.length > 0) {
             compatibleProperties[key] = {
               type: 'multi_select',
               multi_select: validOptions,
@@ -651,9 +708,8 @@ export class NotionClient {
 
         case 'relation':
           if (
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (schema as any).relation.database_id ===
-            typedSourceValue.relation[0]?.database_id
+            typedSchema.relation?.database_id ===
+            typedSourceValue.relation?.[0]?.database_id
           ) {
             compatibleProperties[key] = typedSourceValue;
           }

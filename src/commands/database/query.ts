@@ -329,10 +329,10 @@ export const queryCommand = new Command('query')
       const databaseId = await resolver.resolveDatabaseId(databaseIdOrUrl);
       outputHandler.debug('Database ID:', databaseId);
 
-      // データベーススキーマを取得
-      const database = await client.getDatabase(databaseId);
+      // データソースからスキーマを取得
+      const dataSource = await client.getDataSourceWithProperties(databaseId);
       const schema: Record<string, { type: string }> = {};
-      for (const [name, prop] of Object.entries(database.properties)) {
+      for (const [name, prop] of Object.entries(dataSource.properties)) {
         schema[name] = { type: prop.type };
       }
       outputHandler.debug('Schema:', schema);

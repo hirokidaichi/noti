@@ -1,6 +1,12 @@
 import { Client } from '@notionhq/client';
 import { NotionClient } from './notion-types.js';
-import { CreatePageParameters } from '@notionhq/client/build/src/api-endpoints.js';
+import type {
+  CreatePageParameters,
+  DatabaseObjectResponse,
+  DataSourceObjectResponse,
+  GetDatabaseResponse,
+  GetDataSourceResponse,
+} from '@notionhq/client/build/src/api-endpoints.js';
 
 type _NotionPropertyValue =
   | { type: 'title'; title: Array<{ text: { content: string } }> }
@@ -22,17 +28,47 @@ type _NotionPropertyValue =
       }>;
     };
 
+// 型ガード
+function isDatabaseObjectResponse(
+  response: GetDatabaseResponse
+): response is DatabaseObjectResponse {
+  return response.object === 'database' && 'data_sources' in response;
+}
+
+function isDataSourceObjectResponse(
+  response: GetDataSourceResponse
+): response is DataSourceObjectResponse {
+  return response.object === 'data_source' && 'properties' in response;
+}
+
 export class NotionApiClient extends Client implements NotionClient {
   constructor(apiKey: string) {
     super({ auth: apiKey });
   }
 
+  // データベースIDからdata_source_idを取得
+  private async getDataSourceId(databaseId: string): Promise<string> {
+    const database = await this.databases.retrieve({
+      database_id: databaseId,
+    });
+    if (isDatabaseObjectResponse(database) && database.data_sources?.[0]) {
+      return database.data_sources[0].id;
+    }
+    return databaseId;
+  }
+
   async getDatabaseSchema(databaseId: string): Promise<{
     properties: Record<string, { type: string; name: string }>;
   }> {
-    const response = await this.databases.retrieve({
-      database_id: databaseId,
+    const dataSourceId = await this.getDataSourceId(databaseId);
+    const response = await this.dataSources.retrieve({
+      data_source_id: dataSourceId,
     });
+
+    if (!isDataSourceObjectResponse(response)) {
+      throw new Error('データソースの取得に失敗しました');
+    }
+
     return {
       properties: Object.entries(response.properties).reduce(
         (acc, [key, value]) => {
@@ -51,9 +87,10 @@ export class NotionApiClient extends Client implements NotionClient {
     databaseId: string,
     pages: Record<string, unknown>[]
   ): Promise<void> {
+    const dataSourceId = await this.getDataSourceId(databaseId);
     for (const page of pages) {
       await this.pages.create({
-        parent: { database_id: databaseId },
+        parent: { type: 'data_source_id', data_source_id: dataSourceId },
         properties: this.convertProperties(page),
       });
     }
@@ -62,28 +99,26 @@ export class NotionApiClient extends Client implements NotionClient {
   private convertProperties(
     data: Record<string, unknown>
   ): CreatePageParameters['properties'] {
-    return Object.entries(data).reduce(
-      (acc, [key, value]) => {
-        if (typeof value === 'string') {
-          acc[key] = { rich_text: [{ text: { content: value } }] };
-        } else if (typeof value === 'number') {
-          acc[key] = { number: value };
-        } else if (typeof value === 'boolean') {
-          acc[key] = { checkbox: value };
-        } else if (value instanceof Date) {
-          acc[key] = { date: { start: value.toISOString() } };
-        } else if (Array.isArray(value)) {
-          acc[key] = {
-            multi_select: value.map((v) => ({ name: String(v) })),
-          };
-        } else if (value === null || value === undefined) {
-          acc[key] = { rich_text: [] };
-        } else {
-          acc[key] = { rich_text: [{ text: { content: String(value) } }] };
-        }
-        return acc;
-      },
-      {} as CreatePageParameters['properties']
-    );
+    const result: NonNullable<CreatePageParameters['properties']> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === 'string') {
+        result[key] = { rich_text: [{ text: { content: value } }] };
+      } else if (typeof value === 'number') {
+        result[key] = { number: value };
+      } else if (typeof value === 'boolean') {
+        result[key] = { checkbox: value };
+      } else if (value instanceof Date) {
+        result[key] = { date: { start: value.toISOString() } };
+      } else if (Array.isArray(value)) {
+        result[key] = {
+          multi_select: value.map((v) => ({ name: String(v) })),
+        };
+      } else if (value === null || value === undefined) {
+        result[key] = { rich_text: [] };
+      } else {
+        result[key] = { rich_text: [{ text: { content: String(value) } }] };
+      }
+    }
+    return result;
   }
 }

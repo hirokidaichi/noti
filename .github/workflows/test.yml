@@ -7,10 +7,9 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  # Unit & Integration テスト (モック使用、常に実行)
+  unit-tests:
     runs-on: ubuntu-latest
-    env:
-      NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -35,12 +34,65 @@ jobs:
       - name: Run unit tests with coverage
         run: npx vitest run src/ --coverage
 
-      - name: Run e2e tests
-        if: ${{ env.NOTION_API_KEY != '' }}
-        run: npm run e2e
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage/lcov.info
           fail_ci_if_error: false
+
+  # E2E テスト (実API使用、Secretsがある場合のみ実行)
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    # Secretsが設定されている場合のみ実行
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    env:
+      NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+      NOTION_ROOT_ID: ${{ secrets.NOTION_ROOT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Check E2E environment
+        id: check-env
+        run: |
+          if [ -n "$NOTION_API_KEY" ] && [ -n "$NOTION_ROOT_ID" ]; then
+            echo "e2e_available=true" >> $GITHUB_OUTPUT
+          else
+            echo "e2e_available=false" >> $GITHUB_OUTPUT
+            echo "::warning::E2E tests skipped: NOTION_API_KEY or NOTION_ROOT_ID not set"
+          fi
+
+      - name: Run E2E tests (readonly first)
+        if: steps.check-env.outputs.e2e_available == 'true'
+        run: npm run e2e:readonly
+
+      - name: Run E2E tests (all)
+        if: steps.check-env.outputs.e2e_available == 'true'
+        run: npm run e2e
+
+  # テスト結果サマリー
+  test-summary:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          echo "## Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests | ${{ needs.e2e-tests.result }} |" >> $GITHUB_STEP_SUMMARY

@@ -7,11 +7,11 @@ import { OutputHandler } from '../../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
 import { PageResolver } from '../../lib/command-utils/page-resolver.js';
 
+// プロパティ値の型定義
+type PropertyValue = NonNullable<CreatePageParameters['properties']>[string];
+
 // プロパティ値をNotionのAPI形式に変換
-function formatPropertyForUpdate(
-  value: unknown,
-  type: string
-): CreatePageParameters['properties'][string] {
+function formatPropertyForUpdate(value: unknown, type: string): PropertyValue {
   switch (type) {
     case 'title':
       return {
@@ -55,14 +55,14 @@ async function createPageFromJson(
   const data = JSON.parse(jsonContent);
   outputHandler.debug('JSON Data:', data);
 
-  // データベース情報の取得（プロパティの検証用）
-  const database = await client.getDatabase(databaseId);
-  outputHandler.debug('Database Info:', database);
+  // データソース情報の取得（プロパティの検証用）
+  const dataSource = await client.getDataSourceWithProperties(databaseId);
+  outputHandler.debug('DataSource Info:', dataSource);
 
   // プロパティの変換
   const propertyValues: CreatePageParameters['properties'] = {};
   for (const [key, value] of Object.entries(data.properties)) {
-    const propType = database.properties[key]?.type;
+    const propType = dataSource.properties[key]?.type;
     if (!propType) {
       outputHandler.info(
         `警告: プロパティ "${key}" はデータベースに存在しません`

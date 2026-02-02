@@ -82,8 +82,9 @@ export const importCommand = new Command('import')
         { type: string; name?: string; required?: boolean }
       >;
       try {
-        const database = await notionClient.getDatabase(databaseId);
-        databaseSchema = Object.entries(database.properties).reduce(
+        const dataSource =
+          await notionClient.getDataSourceWithProperties(databaseId);
+        databaseSchema = Object.entries(dataSource.properties).reduce(
           (acc, [key, property]) => {
             acc[key] = {
               type: property.type,

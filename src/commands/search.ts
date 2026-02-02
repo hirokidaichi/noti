@@ -41,7 +41,11 @@ function formatNotionResults(results: NotionItem[]): SearchResult[] {
     let title = 'Untitled';
 
     if (item.object === 'page') {
-      if (item.parent.type === 'database_id') {
+      // 新API: data_source_id, 旧API: database_id の両方に対応
+      if (
+        item.parent.type === 'database_id' ||
+        item.parent.type === 'data_source_id'
+      ) {
         for (const value of Object.values(item.properties)) {
           if (value.type === 'title') {
             title = value.title?.[0]?.plain_text || 'Untitled';
@@ -51,7 +55,7 @@ function formatNotionResults(results: NotionItem[]): SearchResult[] {
       } else {
         title = item.properties?.title?.title?.[0]?.plain_text || 'Untitled';
       }
-    } else if (item.object === 'database') {
+    } else if (item.object === 'database' || item.object === 'data_source') {
       title = item.title?.[0]?.plain_text || 'Untitled Database';
     }
 

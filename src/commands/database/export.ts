@@ -41,9 +41,11 @@ export const exportCommand = new Command('export')
         const databaseId = await pageResolver.resolvePageId(databaseIdOrUrl);
         outputHandler.debug('Database ID:', databaseId);
 
-        // データベースの取得
+        // データベースとDataSource（プロパティ情報）の取得
         const database = await client.getDatabase(databaseId);
+        const dataSource = await client.getDataSourceWithProperties(databaseId);
         outputHandler.debug('Database:', database);
+        outputHandler.debug('DataSource:', dataSource);
 
         // データベースのページを取得
         const pages = await client.queryDatabase({
@@ -57,6 +59,7 @@ export const exportCommand = new Command('export')
           case 'json': {
             output = {
               database,
+              dataSource,
               pages: pages.results,
             };
             break;
@@ -66,7 +69,7 @@ export const exportCommand = new Command('export')
             // CSVデータの準備
             const rows: string[][] = [];
             // ヘッダー行の追加
-            const properties = Object.keys(database.properties);
+            const properties = Object.keys(dataSource.properties);
             rows.push(properties);
 
             // データ行の追加
@@ -85,7 +88,7 @@ export const exportCommand = new Command('export')
 
           case 'markdown': {
             // Markdownテーブルのヘッダー
-            const headers = Object.keys(database.properties);
+            const headers = Object.keys(dataSource.properties);
             output = '| ' + headers.join(' | ') + ' |\n';
             output += '| ' + headers.map(() => '---').join(' | ') + ' |\n';
 

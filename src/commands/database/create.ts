@@ -129,7 +129,7 @@ export const createCommand = new Command('create')
         outputHandler.debug('Property Config:', propertyConfig);
 
         const response = await notionClient.createDatabase({
-          parent: { page_id: resolvedParentId },
+          parent: { type: 'page_id', page_id: resolvedParentId },
           title: [{ text: { content: schema.title } }],
           properties: propertyConfig as Parameters<
             typeof notionClient.createDatabase
