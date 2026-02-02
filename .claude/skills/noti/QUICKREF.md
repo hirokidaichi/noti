@@ -1,5 +1,10 @@
 # noti Quick Reference
 
+## Install
+```bash
+npm install -g @hirokidaichi/noti
+```
+
 ## Install Skill
 ```bash
 noti setup-skills --user      # Install to ~/.claude/skills/
@@ -15,7 +20,7 @@ noti configure --show             # Show current settings
 ## Page Operations
 ```bash
 noti page get <id>                # Get (Markdown)
-noti page get <id> -f json        # Get (JSON)
+noti page get <id> --format json  # Get (JSON)
 noti page create <parent> file.md # Create
 noti page update <id> file.md -f  # Update (-f required)
 noti page append <id> file.md     # Append
@@ -64,6 +69,7 @@ noti block delete <id> -f         # Delete (-f required)
 ## Aliases
 ```bash
 noti alias add <name> <id>        # Add
+noti alias set <name> <id>        # Set (same as add)
 noti alias list                   # List
 noti alias remove <name>          # Remove
 noti open <alias>                 # Open in browser

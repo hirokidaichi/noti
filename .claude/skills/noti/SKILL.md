@@ -7,6 +7,21 @@ description: Notion CLI tool for managing pages, databases, and content. Use whe
 
 noti is a CLI tool for operating Notion from the command line. With this skill, you can create/edit pages, manipulate databases, search, and more.
 
+## Installing noti
+
+```bash
+# Install from npm
+npm install -g @hirokidaichi/noti
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/hirokidaichi/noti.git
+cd noti
+npm install && npm run build && npm link
+```
+
 ## Installing the Skill
 
 ```bash
@@ -35,11 +50,11 @@ Get your Notion Integration Token from https://www.notion.so/my-integrations
 ### Get Page
 
 ```bash
-# Get as Markdown
+# Get as Markdown (default)
 noti page get <page_id_or_url>
 
 # Get as JSON
-noti page get <page_id_or_url> -f json
+noti page get <page_id_or_url> --format json
 
 # Output to file
 noti page get <page_id_or_url> -o output.md
@@ -237,6 +252,9 @@ Set aliases for frequently used pages:
 ```bash
 # Add alias
 noti alias add mypage <page_id_or_url>
+
+# Set alias (same as add)
+noti alias set mypage <page_id_or_url>
 
 # List aliases
 noti alias list
