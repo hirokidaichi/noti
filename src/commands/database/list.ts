@@ -36,13 +36,19 @@ export const listCommand = new Command('list')
         }
 
         // 一覧表示用のアイテムを整形
+        // data_sourceの場合、parent.database_idを使用して正しいdatabase_idを返す
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const items: DatabaseItem[] = results.results.map((db: any) => ({
-          id: db.id,
-          title: db.title?.[0]?.plain_text || 'Untitled',
-          type: 'database',
-          url: db.url,
-        }));
+        const items: DatabaseItem[] = results.results.map((db: any) => {
+          // data_sourceの場合、parentからdatabase_idを取得
+          const databaseId =
+            db.parent?.type === 'database_id' ? db.parent.database_id : db.id;
+          return {
+            id: databaseId,
+            title: db.title?.[0]?.plain_text || 'Untitled',
+            type: 'database',
+            url: db.url,
+          };
+        });
 
         if (options.json) {
           await outputHandler.handleOutput(JSON.stringify(items, null, 2), {
