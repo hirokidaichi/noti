@@ -31,13 +31,15 @@
 ### 1. Install
 
 ```bash
-# Clone and build
+npm install -g @hirokidaichi/noti
+```
+
+Or build from source:
+
+```bash
 git clone https://github.com/hirokidaichi/noti.git
 cd noti
-npm install && npm run build
-
-# Link globally (optional)
-npm link
+npm install && npm run build && npm link
 ```
 
 ### 2. Configure

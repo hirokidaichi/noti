@@ -31,13 +31,15 @@
 ### 1. インストール
 
 ```bash
-# クローンしてビルド
+npm install -g @hirokidaichi/noti
+```
+
+またはソースからビルド：
+
+```bash
 git clone https://github.com/hirokidaichi/noti.git
 cd noti
-npm install && npm run build
-
-# グローバルにリンク（任意）
-npm link
+npm install && npm run build && npm link
 ```
 
 ### 2. 設定
