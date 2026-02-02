@@ -1,10 +1,18 @@
 {
-  "name": "noti",
+  "name": "@hirokidaichi/noti",
   "version": "0.1.0",
   "description": "Notion CLI - A command-line interface for Notion",
   "type": "module",
   "bin": {
     "noti": "./dist/main.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hirokidaichi/noti.git"
+  },
+  "homepage": "https://github.com/hirokidaichi/noti#readme",
+  "bugs": {
+    "url": "https://github.com/hirokidaichi/noti/issues"
   },
   "scripts": {
     "dev": "tsx --watch src/main.ts",
@@ -37,7 +45,7 @@
     "notion-api",
     "productivity"
   ],
-  "author": "",
+  "author": "hirokidaichi",
   "license": "MIT",
   "dependencies": {
     "@inquirer/prompts": "^7.2.0",
