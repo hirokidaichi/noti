@@ -182,11 +182,14 @@ noti database page add <database_id> page_data.json
 # Get page
 noti database page get <page_id>
 
+# Update page properties from JSON file
+noti database page update <page_id> page_data.json
+
 # Delete page (-f required)
 noti database page remove <page_id> -f
 ```
 
-Page data JSON format:
+Page data JSON format (used for both add and update):
 ```json
 {
   "properties": {
@@ -196,6 +199,8 @@ Page data JSON format:
   }
 }
 ```
+
+For update, only the specified properties are changed; other properties remain unchanged.
 
 ## Comment Operations
 

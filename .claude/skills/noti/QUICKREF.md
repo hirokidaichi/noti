@@ -41,9 +41,10 @@ noti database create <parent> schema.json           # Create
 
 ## Database Pages
 ```bash
-noti database page add <db_id> data.json  # Add from JSON
-noti database page get <page_id>          # Get
-noti database page remove <page_id> -f    # Delete (-f required)
+noti database page add <db_id> data.json     # Add from JSON
+noti database page get <page_id>             # Get
+noti database page update <page_id> data.json # Update properties
+noti database page remove <page_id> -f       # Delete (-f required)
 ```
 
 ## Comments
