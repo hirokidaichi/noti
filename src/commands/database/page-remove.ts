@@ -7,10 +7,21 @@ import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
 import { PageResolver } from '../../lib/command-utils/page-resolver.js';
 
 export const removeCommand = new Command('remove')
-  .description('データベースページを削除')
+  .description('データベースページを削除（アーカイブ）')
   .argument('<database_page_id_or_url>', 'データベースページIDまたはURL')
   .option('-d, --debug', 'デバッグモード')
-  .option('-f, --force', '削除を実行')
+  .option('-f, --force', '削除を実行（必須）')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database page remove <page_id> -f
+  $ noti database page remove https://notion.so/xxxx -f
+
+Notes:
+  - -f オプションは必須（誤削除防止）
+  - Notion APIではページは完全削除されず、アーカイブされます`
+  )
   .action(
     async (
       databasePageIdOrUrl: string,

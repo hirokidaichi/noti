@@ -72,6 +72,19 @@ export const getCommand = new Command('get')
   .option('-d, --debug', 'デバッグモード')
   .option('-j, --json', 'JSON形式で出力')
   .option('-o, --output <path>', '出力ファイルパス')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database page get <page_id>
+  $ noti database page get <page_id> --json
+  $ noti database page get <page_id> -o page.md
+  $ noti database page get https://notion.so/xxxx --json -o page.json
+
+Output:
+  デフォルト: プロパティ一覧とコンテンツをMarkdown形式で表示
+  --json: ページオブジェクトとブロック一覧をJSON形式で出力`
+  )
   .action(
     async (
       databasePageIdOrUrl: string,

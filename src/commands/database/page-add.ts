@@ -111,6 +111,29 @@ export const addCommand = new Command('add')
   .argument('<database_id_or_url>', 'データベースIDまたはURL')
   .argument('<json_file>', 'ページデータのJSONファイル')
   .option('-d, --debug', 'デバッグモード')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database page add <database_id> page.json
+  $ noti database page add https://notion.so/xxxx page.json
+
+JSON format (page.json):
+  {
+    "properties": {
+      "Name": "タスク名",
+      "Status": "Todo",
+      "Priority": 1,
+      "Done": false,
+      "Tags": ["feature", "bug"],
+      "DueDate": "2026-02-10"
+    }
+  }
+
+Supported property types:
+  title, rich_text, number, select, multi_select,
+  checkbox, date, url, email, phone_number`
+  )
   .action(
     async (
       databaseIdOrUrl: string,

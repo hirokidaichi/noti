@@ -85,6 +85,28 @@ export const updateCommand = new Command('update')
   .argument('<page_id_or_url>', 'ページIDまたはURL')
   .argument('<json_file>', 'プロパティデータのJSONファイル')
   .option('-d, --debug', 'デバッグモード')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database page update <page_id> update.json
+  $ noti database page update https://notion.so/xxxx update.json
+
+JSON format (update.json):
+  {
+    "properties": {
+      "Status": "Done",
+      "Priority": 5,
+      "Tags": ["完了", "レビュー済"]
+    }
+  }
+
+Notes:
+  - 指定したプロパティのみ更新（未指定のプロパティは変更なし）
+  - JSON形式は add コマンドと同一
+  - 対応プロパティ型: title, rich_text, number, select,
+    multi_select, checkbox, date, url, email, phone_number`
+  )
   .action(
     async (
       pageIdOrUrl: string,
