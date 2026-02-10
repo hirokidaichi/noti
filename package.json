@@ -1,6 +1,6 @@
 {
   "name": "@hirokidaichi/noti",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Notion CLI - A command-line interface for Notion",
   "type": "module",
   "bin": {
