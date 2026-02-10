@@ -31,6 +31,8 @@ noti page remove <id> -f          # Delete (-f required)
 ```bash
 noti database list                # List (tab-separated)
 noti database list --json         # List (JSON)
+noti database schema <id>          # Show schema (table)
+noti database schema <id> --json   # Show schema (JSON)
 noti database query <id>          # Query
 noti database query <id> -f "Status=Done"           # Filter
 noti database query <id> -s "Name:asc"              # Sort

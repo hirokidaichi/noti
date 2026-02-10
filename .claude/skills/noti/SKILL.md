@@ -104,6 +104,22 @@ noti database list
 noti database list --json
 ```
 
+### Show Database Schema
+
+```bash
+# Table format (human/AI readable)
+noti database schema <database_id>
+
+# JSON format (full property definitions)
+noti database schema <database_id> --json
+
+# Output to file
+noti database schema <database_id> --json -o schema.json
+```
+
+Shows property names, types, and available options (select/multi_select/status).
+Use `--json` to get detailed type information for programmatic use.
+
 ### Query Database
 
 ```bash
