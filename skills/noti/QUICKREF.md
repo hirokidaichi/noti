@@ -1,5 +1,10 @@
 # noti Quick Reference
 
+## Install
+```bash
+npm install -g @hirokidaichi/noti
+```
+
 ## Install Skill
 ```bash
 noti setup-skills --user      # Install to ~/.claude/skills/
@@ -15,7 +20,7 @@ noti configure --show             # Show current settings
 ## Page Operations
 ```bash
 noti page get <id>                # Get (Markdown)
-noti page get <id> -f json        # Get (JSON)
+noti page get <id> --format json  # Get (JSON)
 noti page create <parent> file.md # Create
 noti page update <id> file.md -f  # Update (-f required)
 noti page append <id> file.md     # Append
@@ -26,6 +31,8 @@ noti page remove <id> -f          # Delete (-f required)
 ```bash
 noti database list                # List (tab-separated)
 noti database list --json         # List (JSON)
+noti database schema <id>          # Show schema (table)
+noti database schema <id> --json   # Show schema (JSON)
 noti database query <id>          # Query
 noti database query <id> -f "Status=Done"           # Filter
 noti database query <id> -s "Name:asc"              # Sort
@@ -36,9 +43,10 @@ noti database create <parent> schema.json           # Create
 
 ## Database Pages
 ```bash
-noti database page add <db_id> data.json  # Add from JSON
-noti database page get <page_id>          # Get
-noti database page remove <page_id> -f    # Delete (-f required)
+noti database page add <db_id> data.json     # Add from JSON
+noti database page get <page_id>             # Get
+noti database page update <page_id> data.json # Update properties
+noti database page remove <page_id> -f       # Delete (-f required)
 ```
 
 ## Comments
@@ -64,6 +72,7 @@ noti block delete <id> -f         # Delete (-f required)
 ## Aliases
 ```bash
 noti alias add <name> <id>        # Add
+noti alias set <name> <id>        # Set (same as add)
 noti alias list                   # List
 noti alias remove <name>          # Remove
 noti open <alias>                 # Open in browser

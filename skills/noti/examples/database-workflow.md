@@ -137,6 +137,41 @@ noti database import -f tasks.csv -d <db_id> --map-file mapping.json
 noti database page add <db_id> -j new_task.json
 ```
 
+## データベースページのプロパティ更新
+
+### JSONファイルからのプロパティ更新
+
+指定したプロパティのみ更新されます（未指定のプロパティは変更されません）。
+
+```json
+{
+  "properties": {
+    "Status": "Done",
+    "Priority": 5,
+    "Tags": ["完了", "レビュー済"]
+  }
+}
+```
+
+```bash
+noti database page update <page_id> update_data.json
+```
+
+### 一括更新ワークフロー
+
+```bash
+# 1. 対象ページを検索
+noti database query <db_id> -f "Status=In Progress" --json | jq -r '.[].id'
+
+# 2. 更新用JSONを作成
+echo '{"properties": {"Status": "Done"}}' > update.json
+
+# 3. 各ページを更新
+for page_id in $(noti database query <db_id> -f "Status=In Progress" --json | jq -r '.[].id'); do
+  noti database page update "$page_id" update.json
+done
+```
+
 ## バックアップと移行
 
 ### 定期バックアップスクリプト

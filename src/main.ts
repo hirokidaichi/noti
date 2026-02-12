@@ -11,13 +11,17 @@ import { openCommand } from './commands/open.js';
 import { blockCommand } from './commands/block.js';
 import { setupSkillsCommand } from './commands/setup-skills.js';
 import { Config } from './lib/config/config.js';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json');
 
 const program = new Command();
 
 program
   .name('noti')
   .description('Notion CLI Client')
-  .version('0.1.0')
+  .version(version)
   .addCommand(configureCommand)
   .addCommand(aliasCommand)
   .addCommand(pageCommand)

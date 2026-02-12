@@ -7,6 +7,21 @@ description: Notion CLI tool for managing pages, databases, and content. Use whe
 
 noti is a CLI tool for operating Notion from the command line. With this skill, you can create/edit pages, manipulate databases, search, and more.
 
+## Installing noti
+
+```bash
+# Install from npm
+npm install -g @hirokidaichi/noti
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/hirokidaichi/noti.git
+cd noti
+npm install && npm run build && npm link
+```
+
 ## Installing the Skill
 
 ```bash
@@ -35,11 +50,11 @@ Get your Notion Integration Token from https://www.notion.so/my-integrations
 ### Get Page
 
 ```bash
-# Get as Markdown
+# Get as Markdown (default)
 noti page get <page_id_or_url>
 
 # Get as JSON
-noti page get <page_id_or_url> -f json
+noti page get <page_id_or_url> --format json
 
 # Output to file
 noti page get <page_id_or_url> -o output.md
@@ -88,6 +103,22 @@ noti database list
 # JSON output
 noti database list --json
 ```
+
+### Show Database Schema
+
+```bash
+# Table format (human/AI readable)
+noti database schema <database_id>
+
+# JSON format (full property definitions)
+noti database schema <database_id> --json
+
+# Output to file
+noti database schema <database_id> --json -o schema.json
+```
+
+Shows property names, types, and available options (select/multi_select/status).
+Use `--json` to get detailed type information for programmatic use.
 
 ### Query Database
 
@@ -167,11 +198,14 @@ noti database page add <database_id> page_data.json
 # Get page
 noti database page get <page_id>
 
+# Update page properties from JSON file
+noti database page update <page_id> page_data.json
+
 # Delete page (-f required)
 noti database page remove <page_id> -f
 ```
 
-Page data JSON format:
+Page data JSON format (used for both add and update):
 ```json
 {
   "properties": {
@@ -181,6 +215,8 @@ Page data JSON format:
   }
 }
 ```
+
+For update, only the specified properties are changed; other properties remain unchanged.
 
 ## Comment Operations
 
@@ -237,6 +273,9 @@ Set aliases for frequently used pages:
 ```bash
 # Add alias
 noti alias add mypage <page_id_or_url>
+
+# Set alias (same as add)
+noti alias set mypage <page_id_or_url>
 
 # List aliases
 noti alias list
