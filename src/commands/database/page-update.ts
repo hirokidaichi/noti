@@ -9,7 +9,12 @@ import type {
 import { OutputHandler } from '../../lib/command-utils/output-handler.js';
 import { ErrorHandler } from '../../lib/command-utils/error-handler.js';
 import { PageResolver } from '../../lib/command-utils/page-resolver.js';
-import { formatPropertyForUpdate } from './page-add.js';
+import {
+  formatPropertyForUpdate,
+  isReadOnlyType,
+  validatePropertyValue,
+} from './page-add.js';
+import { formatSchema } from './schema.js';
 
 export async function updatePageFromJson(
   client: NotionClient,
@@ -48,12 +53,29 @@ export async function updatePageFromJson(
   // プロパティの変換
   const propertyValues: CreatePageParameters['properties'] = {};
   for (const [key, value] of Object.entries(data.properties)) {
-    const propType = dataSource.properties[key]?.type;
-    if (!propType) {
+    const propSchema = dataSource.properties[key];
+    if (!propSchema) {
+      const available = Object.keys(dataSource.properties).join(', ');
       outputHandler.info(
-        `警告: プロパティ "${key}" はデータベースに存在しません`
+        `警告: プロパティ "${key}" はデータベースに存在しません（利用可能: ${available}）`
       );
       continue;
+    }
+
+    const propType = propSchema.type;
+
+    // 読み取り専用プロパティのスキップ
+    if (isReadOnlyType(propType)) {
+      outputHandler.info(
+        `警告: プロパティ "${key}" (${propType}) は読み取り専用のためスキップします`
+      );
+      continue;
+    }
+
+    // 値の型バリデーション
+    const validationError = validatePropertyValue(key, value, propType);
+    if (validationError) {
+      throw new Error(validationError);
     }
 
     try {
@@ -83,13 +105,15 @@ export async function updatePageFromJson(
 export const updateCommand = new Command('update')
   .description('データベースページのプロパティを更新')
   .argument('<page_id_or_url>', 'ページIDまたはURL')
-  .argument('<json_file>', 'プロパティデータのJSONファイル')
+  .argument('[json_file]', 'プロパティデータのJSONファイル')
   .option('-d, --debug', 'デバッグモード')
+  .option('--show-schema', 'このページのデータベーススキーマを表示して終了')
   .addHelpText(
     'after',
     `
 Examples:
   $ noti database page update <page_id> update.json
+  $ noti database page update <page_id> --show-schema  # スキーマ確認
   $ noti database page update https://notion.so/xxxx update.json
 
 JSON format (update.json):
@@ -104,14 +128,15 @@ JSON format (update.json):
 Notes:
   - 指定したプロパティのみ更新（未指定のプロパティは変更なし）
   - JSON形式は add コマンドと同一
-  - 対応プロパティ型: title, rich_text, number, select,
-    multi_select, checkbox, date, url, email, phone_number`
+  - 日付文字列 "YYYY-MM-DD" は自動的に {start: "..."} に変換
+  - 対応プロパティ型: title, rich_text, number, select, status,
+    multi_select, checkbox, date, url, email, phone_number, relation, people`
   )
   .action(
     async (
       pageIdOrUrl: string,
-      jsonFile: string,
-      options: { debug?: boolean }
+      jsonFile: string | undefined,
+      options: { debug?: boolean; showSchema?: boolean }
     ) => {
       const outputHandler = new OutputHandler({ debug: options.debug });
       const errorHandler = new ErrorHandler();
@@ -124,6 +149,35 @@ Notes:
         // ページIDの解決
         const pageId = await pageResolver.resolvePageId(pageIdOrUrl);
         outputHandler.debug('Page ID:', pageId);
+
+        // --show-schema: ページの親DBスキーマを表示して終了
+        if (options.showSchema) {
+          const page = (await client.getPage(pageId)) as PageObjectResponse;
+          let databaseId: string;
+          if (page.parent.type === 'database_id') {
+            databaseId = page.parent.database_id.replace(/-/g, '');
+          } else if (
+            page.parent.type === 'data_source_id' &&
+            'database_id' in page.parent
+          ) {
+            databaseId = (
+              page.parent as { database_id: string }
+            ).database_id.replace(/-/g, '');
+          } else {
+            throw new Error('このページはデータベースページではありません');
+          }
+          const dataSource =
+            await client.getDataSourceWithProperties(databaseId);
+          const output = formatSchema(dataSource.properties);
+          await outputHandler.handleOutput(output);
+          return;
+        }
+
+        if (!jsonFile) {
+          throw new Error(
+            'JSONファイルを指定してください（スキーマ確認は --show-schema）'
+          );
+        }
 
         await updatePageFromJson(client, pageId, jsonFile, outputHandler);
       }, 'データベースページの更新に失敗しました');

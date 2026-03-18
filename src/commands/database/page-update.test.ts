@@ -78,7 +78,9 @@ describe('updatePageFromJson', () => {
     );
 
     expect(outputHandler.info).toHaveBeenCalledWith(
-      '警告: プロパティ "UnknownProp" はデータベースに存在しません'
+      expect.stringContaining(
+        '警告: プロパティ "UnknownProp" はデータベースに存在しません'
+      )
     );
   });
 
