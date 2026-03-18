@@ -34,10 +34,7 @@ Notes:
       await errorHandler.withErrorHandling(async () => {
         // -f オプションが必須
         if (!options.force) {
-          outputHandler.error(
-            '削除を実行するには -f オプションを指定してください'
-          );
-          return;
+          throw new Error('削除を実行するには -f オプションを指定してください');
         }
 
         const config = await Config.load();

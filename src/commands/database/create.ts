@@ -103,7 +103,14 @@ export const createCommand = new Command('create')
 
         // スキーマファイルの読み込み
         const schemaContent = await readFile(schemaFile, 'utf-8');
-        const schema: DatabaseSchema = JSON.parse(schemaContent);
+        let schema: DatabaseSchema;
+        try {
+          schema = JSON.parse(schemaContent);
+        } catch {
+          throw new Error(
+            'スキーマファイルのJSONパースに失敗しました。正しいJSON形式か確認してください'
+          );
+        }
         outputHandler.debug('Schema:', schema);
 
         if (!schema.title) {
