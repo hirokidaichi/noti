@@ -12,10 +12,24 @@ interface DatabaseItem {
 }
 
 export const listCommand = new Command('list')
-  .description('データベース一覧を表示')
+  .description('アクセス可能なデータベース一覧を表示')
   .option('-d, --debug', 'デバッグモード')
   .option('--json', 'JSON形式で出力')
-  .option('--limit <number>', '取得件数制限', '100')
+  .option('--limit <number>', '取得件数制限（1-100）', '100')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database list                # 一覧表示（タブ区切り）
+  $ noti database list --json         # JSON形式
+
+Output:
+  <database_id>  database  <title>   （タブ区切り）
+
+Notes:
+  - 出力されるIDは他のコマンド（query, export, schema等）にそのまま渡せます
+  - データベースの構造を確認するには "database schema <id>" を使用`
+  )
   .action(
     async (options: { debug?: boolean; json?: boolean; limit: string }) => {
       const outputHandler = new OutputHandler({ debug: options.debug });

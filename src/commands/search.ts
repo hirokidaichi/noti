@@ -77,11 +77,28 @@ function formatNotionResults(results: NotionItem[]): SearchResult[] {
 }
 
 export const searchCommand = new Command('search')
-  .description('Search pages and databases in Notion')
-  .argument('[query]', 'Search query')
+  .description('ワークスペース全体からページ・データベースを横断検索')
+  .argument('[query]', '検索キーワード（空で全件取得）')
   .option('-d, --debug', 'デバッグモード')
   .option('--json', 'JSON形式で出力')
-  .option('--limit <number>', '検索結果の最大数', '20')
+  .option('--limit <number>', '検索結果の最大数（1-100）', '20')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti search "議事録"              # キーワードで検索
+  $ noti search "議事録" --json       # JSON形式で出力
+  $ noti search --limit 50            # 全件（上限50）取得
+  $ noti search "API設計" --limit 5   # 上位5件
+
+Output (デフォルト):
+  <id>  <type>  <title>    （タブ区切り）
+
+Notes:
+  - ページとデータベースの両方が検索対象です
+  - 特定のデータベース内をフィルタ検索する場合は "database query" を使用
+  - 出力のIDは他のコマンドにそのまま渡せます`
+  )
   .action(
     async (
       query: string | undefined,

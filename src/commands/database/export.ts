@@ -15,7 +15,7 @@ interface MultiSelectOption {
 }
 
 export const exportCommand = new Command('export')
-  .description('データベースをエクスポート')
+  .description('データベース全データをJSON/CSV/Markdownでエクスポート')
   .argument('<database_id_or_url>', 'データベースIDまたはURL')
   .option('-d, --debug', 'デバッグモード')
   .option(
@@ -24,6 +24,21 @@ export const exportCommand = new Command('export')
     'json'
   )
   .option('-o, --output <path>', '出力ファイルパス')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database export <db_id>                         # JSON（デフォルト）
+  $ noti database export <db_id> -f csv -o data.csv      # CSVファイルに保存
+  $ noti database export <db_id> -f markdown              # Markdownテーブル
+  $ noti database export <db_id> -f json -o backup.json   # JSONバックアップ
+
+Notes:
+  - json: database, dataSource, pages を含む完全なデータ
+  - csv: プロパティ値のみ（ヘッダー行 + データ行）
+  - markdown: Markdownテーブル形式
+  - 条件付きエクスポートが必要な場合は "database query --json" を使用`
+  )
   .action(
     async (
       databaseIdOrUrl: string,

@@ -20,8 +20,23 @@ const program = new Command();
 
 program
   .name('noti')
-  .description('Notion CLI Client')
+  .description('Notion CLI Client — ページ・データベース・ブロックを操作')
   .version(version)
+  .addHelpText(
+    'after',
+    `
+コマンド選択ガイド:
+  ページのコンテンツ（本文）を操作したい → page (get/create/update/append/remove)
+  データベースの一覧・検索・エクスポート  → database (list/query/export/schema)
+  データベース行（プロパティ）を操作したい → database page (add/get/update/remove)
+  ワークスペース全体を横断検索したい     → search
+  ブロック単位で操作したい              → block (get/list/delete)
+
+注意:
+  "page update" はページの本文（Markdownコンテンツ）を置換します
+  "database page update" はデータベース行のプロパティ値を更新します
+  IDの代わりにNotionのURLやエイリアスも使用できます`
+  )
   .addCommand(configureCommand)
   .addCommand(aliasCommand)
   .addCommand(pageCommand)

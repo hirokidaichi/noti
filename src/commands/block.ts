@@ -153,7 +153,15 @@ const listCommand = new Command('list')
   });
 
 export const blockCommand = new Command('block')
-  .description('ブロック操作コマンド')
+  .description('個別ブロック単位の取得・一覧・削除（低レベル操作）')
+  .addHelpText(
+    'after',
+    `
+Notes:
+  - ブロックはNotionの最小コンテンツ単位（段落、見出し、リスト項目など）
+  - ページ全体を操作する場合は "page" コマンドを使用してください
+  - ブロックIDは "block list <page_id>" で確認できます`
+  )
   .addCommand(getCommand)
   .addCommand(deleteCommand)
   .addCommand(listCommand);

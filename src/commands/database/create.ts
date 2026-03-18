@@ -71,10 +71,36 @@ function generatePropertyConfig(
 }
 
 export const createCommand = new Command('create')
-  .description('Notionデータベースを作成します')
-  .argument('<parent_page_id>', '親ページID')
+  .description('スキーマJSONから新規データベースを作成')
+  .argument('<parent_page_id>', '親ページIDまたはURL')
   .argument('<schema_file>', 'データベーススキーマのJSONファイル')
   .option('-d, --debug', 'デバッグモード')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database create <parent_id> schema.json
+
+スキーマJSON形式:
+  {
+    "title": "タスク管理",
+    "icon": "📋",
+    "properties": {
+      "Name":     { "type": "title" },
+      "Status":   { "type": "select", "options": ["Todo", "In Progress", "Done"] },
+      "Priority": { "type": "number" },
+      "Tags":     { "type": "multi_select", "options": ["Feature", "Bug"] },
+      "Done":     { "type": "checkbox" },
+      "URL":      { "type": "url" },
+      "Email":    { "type": "email" },
+      "DueDate":  { "type": "date" }
+    }
+  }
+
+対応プロパティ型:
+  title, rich_text, number, select, multi_select,
+  checkbox, date, url, email, phone_number`
+  )
   .action(
     async (
       parentPageId: string,

@@ -7,6 +7,35 @@ description: Notion CLI tool for managing pages, databases, and content. Use whe
 
 noti is a CLI tool for operating Notion from the command line. With this skill, you can create/edit pages, manipulate databases, search, and more.
 
+## Command Selection Guide (AI向け判断フロー)
+
+**Q: 何を操作したいか?**
+
+| やりたいこと | コマンド | 例 |
+|---|---|---|
+| ページの本文を読む | `page get` | `noti page get <id>` |
+| ページを新規作成 | `page create` | `noti page create <parent_id> doc.md` |
+| ページの本文を書き換え | `page update` | `noti page update <id> new.md -f` |
+| ページの末尾に追記 | `page append` | `noti page append <id> extra.md` |
+| ページを削除 | `page remove` | `noti page remove <id> -f` |
+| DB一覧を確認 | `database list` | `noti database list` |
+| DBのプロパティ定義を確認 | `database schema` | `noti database schema <db_id>` |
+| DBを条件検索 | `database query` | `noti database query <db_id> -f "Status=Done"` |
+| DBを一括エクスポート | `database export` | `noti database export <db_id> -f csv -o data.csv` |
+| DBにCSVインポート | `database import` | `noti database import -f data.csv -d <db_id>` |
+| DB行のプロパティを読む | `database page get` | `noti database page get <page_id>` |
+| DB行を新規追加 | `database page add` | `noti database page add <db_id> data.json` |
+| DB行のプロパティを更新 | `database page update` | `noti database page update <page_id> data.json` |
+| DB行を削除 | `database page remove` | `noti database page remove <page_id> -f` |
+| ワークスペース横断検索 | `search` | `noti search "キーワード"` |
+| コメントを操作 | `page comment` | `noti page comment add <id> "コメント"` |
+
+**重要な区別:**
+- `page update` = Markdownで**本文コンテンツ**を置換（既存ブロックをすべて削除して新規作成）
+- `database page update` = JSONで**プロパティ値**（Status, Priority等）のみ更新（本文は変更しない）
+- `page create` = 親ページ配下に子ページを作成
+- `database page add` = データベースに新しい行を追加
+
 ## Installing noti
 
 ```bash
@@ -139,9 +168,19 @@ noti database query <database_id> -f "Status=Done" -s "Name:asc" --limit 10
 ```
 
 **Filter Operators:**
-- `=`, `!=` - Equality comparison
-- `>`, `<`, `>=`, `<=` - Numeric/date comparison
-- `contains`, `!contains` - Text/multi-select search
+
+| 演算子 | 意味 | 例 | 対応プロパティ型 |
+|--------|------|-----|-----------------|
+| `=` | 一致 | `"Status=Done"` | all |
+| `!=` | 不一致 | `"Status!=Todo"` | all |
+| `>` | より大きい | `"Priority>3"` | number, date |
+| `<` | より小さい | `"Priority<5"` | number, date |
+| `>=` | 以上 | `"Score>=80"` | number, date |
+| `<=` | 以下 | `"Score<=100"` | number, date |
+| `contains` | 含む | `"Tags contains Feature"` | text, multi_select |
+| `!contains` | 含まない | `"Tags !contains Bug"` | text, multi_select |
+
+複数フィルタは AND 条件: `-f "Status=Done" -f "Priority>3"`
 
 ### Export Database
 
@@ -354,9 +393,29 @@ noti database import -f new_data.csv -d <database_id> --dry-run  # Validate firs
 noti database import -f new_data.csv -d <database_id>            # Execute
 ```
 
+## Property Types Reference
+
+以下のプロパティ型がサポートされています（database page add/update のJSONで使用）:
+
+| 型 | JSONでの値の例 | 説明 |
+|---|---|---|
+| `title` | `"タイトル文字列"` | ページのタイトル（DB内で1つ） |
+| `rich_text` | `"テキスト文字列"` | リッチテキスト |
+| `number` | `42` | 数値 |
+| `select` | `"Option1"` | 単一選択 |
+| `multi_select` | `["Tag1", "Tag2"]` | 複数選択（配列） |
+| `checkbox` | `true` / `false` | チェックボックス |
+| `date` | `"2026-01-01"` | 日付（ISO 8601） |
+| `url` | `"https://example.com"` | URL |
+| `email` | `"user@example.com"` | メールアドレス |
+| `phone_number` | `"+81-90-1234-5678"` | 電話番号 |
+
 ## Notes
 
 - Page ID, database ID, or Notion URL can be specified
 - Set aliases to access with short names instead of IDs or URLs
 - Use `--debug` or `-d` option for detailed logs
 - Destructive operations (delete, update) require `-f` option
+- `--json` 出力は他のコマンドやスクリプトとの連携に便利です
+- 出力のIDは他のnotiコマンドにそのまま渡せます
+- エラーメッセージは stderr、データ出力は stdout に出力されます（パイプ対応）

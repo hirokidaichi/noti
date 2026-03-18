@@ -21,7 +21,9 @@ interface CreatePageResponse {
 
 // ページ取得サブコマンド
 const getSubCommand = new Command('get')
-  .description('ページの情報を取得')
+  .description(
+    'ページの情報を取得（プロパティと本文をMarkdownまたはJSONで出力）'
+  )
   .argument('<page_id_or_url>', 'ページIDまたはURL')
   .option('-d, --debug', 'デバッグモード')
   .option(
@@ -30,6 +32,20 @@ const getSubCommand = new Command('get')
     'markdown'
   )
   .option('-o, --output <file>', '出力ファイルパス')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti page get <page_id>                       # Markdown形式で標準出力
+  $ noti page get <page_id> -f json               # JSON形式で出力
+  $ noti page get <page_id> -o page.md            # ファイルに保存
+  $ noti page get https://notion.so/xxxx -f json  # URLでも指定可能
+  $ noti page get my-alias                        # エイリアスでも指定可能
+
+Notes:
+  - Markdown出力にはプロパティ一覧と本文ブロックの両方が含まれます
+  - データベースページのプロパティだけ見たい場合は "database page get" を使用`
+  )
   .action(
     async (
       pageIdOrUrl: string,
@@ -87,10 +103,22 @@ const getSubCommand = new Command('get')
 
 // ページ追記サブコマンド
 const appendSubCommand = new Command('append')
-  .description('ページにコンテンツを追加')
+  .description('ページの末尾にMarkdownコンテンツを追記（既存内容は保持）')
   .argument('<page_id_or_url>', 'ページIDまたはURL')
-  .argument('<input_file>', '入力ファイルパス')
+  .argument('<input_file>', '入力Markdownファイルパス')
   .option('-d, --debug', 'デバッグモード')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti page append <page_id> notes.md     # ページ末尾にMarkdownを追記
+  $ noti page append my-alias meeting.md    # エイリアスで指定
+
+Notes:
+  - 既存のコンテンツは削除されません（末尾に追加）
+  - 本文を完全に置き換えたい場合は "page update" を使用
+  - 対応Markdown: 見出し, 段落, リスト, 引用, コードブロック, チェックボックス`
+  )
   .action(
     async (
       pageIdOrUrl: string,
@@ -129,11 +157,23 @@ const appendSubCommand = new Command('append')
 
 // ページ作成サブコマンド
 const createSubCommand = new Command('create')
-  .description('新規ページを作成')
+  .description('親ページ配下にMarkdownから新規ページを作成')
   .argument('<parent_id_or_url>', '親ページIDまたはURL')
-  .argument('<input_file>', '入力ファイルパス')
+  .argument('<input_file>', '入力Markdownファイルパス')
   .option('-t, --title <title>', 'ページのタイトル')
   .option('-d, --debug', 'デバッグモード')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti page create <parent_id> doc.md              # 親ページ配下に作成
+  $ noti page create <parent_id> doc.md -t "議事録"  # タイトルを明示的に指定
+
+Notes:
+  - タイトル未指定時、Markdownの最初の # 見出しがタイトルになります
+  - # 見出しもない場合、ファイル名がタイトルになります
+  - データベースにページ（行）を追加する場合は "database page add" を使用`
+  )
   .action(
     async (
       parentIdOrUrl: string,
@@ -198,10 +238,22 @@ const createSubCommand = new Command('create')
 
 // ページ削除サブコマンド
 const removeSubCommand = new Command('remove')
-  .description('ページを削除（アーカイブ）')
+  .description('ページを削除（アーカイブ）。-f 必須')
   .argument('<page_id_or_url>', 'ページIDまたはURL')
   .option('-d, --debug', 'デバッグモード')
-  .option('-f, --force', '確認なしで削除')
+  .option('-f, --force', '削除を実行（必須・誤削除防止）')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti page remove <page_id> -f            # ページをアーカイブ
+  $ noti page remove https://notion.so/xxxx -f
+
+Notes:
+  - -f オプションは必須です（誤削除防止のため）
+  - Notion APIではページは完全削除されず、アーカイブされます
+  - データベース行を削除する場合は "database page remove" を使用`
+  )
   .action(
     async (
       pageIdOrUrl: string,
@@ -244,12 +296,25 @@ const removeSubCommand = new Command('remove')
 
 // ページ更新サブコマンド
 const updateSubCommand = new Command('update')
-  .description('ページの内容を更新')
+  .description('ページの本文をMarkdownで完全に置換。-f 必須')
   .argument('<page_id_or_url>', 'ページIDまたはURL')
-  .argument('<input_file>', '入力ファイルパス')
+  .argument('<input_file>', '入力Markdownファイルパス')
   .option('-t, --title <title>', '新しいページタイトル')
   .option('-d, --debug', 'デバッグモード')
-  .option('-f, --force', '確認なしで更新')
+  .option('-f, --force', '更新を実行（必須・誤操作防止）')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti page update <page_id> new-content.md -f              # 本文を置換
+  $ noti page update <page_id> new-content.md -f -t "新タイトル"  # タイトルも変更
+
+Notes:
+  - 既存の本文ブロックはすべて削除され、新しい内容で置換されます
+  - 末尾に追記したい場合は "page append" を使用
+  - データベース行のプロパティを更新する場合は "database page update" を使用
+  - -f オプションは必須です（誤操作防止のため）`
+  )
   .action(
     async (
       pageIdOrUrl: string,
@@ -319,7 +384,7 @@ const updateSubCommand = new Command('update')
   );
 
 export const pageCommand = new Command('page')
-  .description('ページ操作コマンド')
+  .description('ページの本文コンテンツを操作（取得/作成/更新/追記/削除）')
   .addCommand(getSubCommand)
   .addCommand(appendSubCommand)
   .addCommand(createSubCommand)

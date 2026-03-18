@@ -300,23 +300,59 @@ export function parseSort(
 }
 
 export const queryCommand = new Command('query')
-  .description('データベースをクエリ（フィルタ/ソート対応）')
+  .description('データベースをフィルタ/ソートしてクエリ')
   .argument('<database_id_or_url>', 'データベースIDまたはURL')
   .option('-d, --debug', 'デバッグモード')
   .option('--json', 'JSON形式で出力')
   .option(
     '-f, --filter <condition>',
-    'フィルタ条件（例: "Status=Done", "Priority!=Low"）',
+    'フィルタ条件（複数指定でAND）',
     (val, prev: string[]) => [...(prev || []), val],
     []
   )
   .option(
     '-s, --sort <property:direction>',
-    'ソート条件（例: "Name:asc", "Created:desc"）',
+    'ソート条件',
     (val, prev: string[]) => [...(prev || []), val],
     []
   )
-  .option('--limit <number>', '取得件数', '50')
+  .option('--limit <number>', '取得件数（1-100）', '50')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ noti database query <db_id>                           # 全件取得
+  $ noti database query <db_id> -f "Status=Done"          # フィルタ
+  $ noti database query <db_id> -f "Status=Done" -f "Priority>3"  # AND条件
+  $ noti database query <db_id> -s "Name:asc"             # ソート
+  $ noti database query <db_id> --json                    # JSON出力
+  $ noti database query <db_id> --json -f "Status!=Todo"  # JSON + フィルタ
+
+フィルタ演算子:
+  =          完全一致        "Status=Done"
+  !=         不一致         "Status!=Todo"
+  >          より大きい      "Priority>3"
+  <          より小さい      "Priority<5"
+  >=         以上           "Score>=80"
+  <=         以下           "Score<=100"
+  contains   含む           "Tags contains Feature"
+  !contains  含まない       "Tags !contains Bug"
+
+  - select: = !=
+  - multi_select: contains !contains
+  - number: = != > < >= <=
+  - text/title/rich_text: = != contains !contains
+  - checkbox: =true =false
+  - date: = > < >= <=
+
+ソート:
+  "Name:asc"       昇順
+  "Created:desc"   降順
+
+Output (デフォルト):
+  タイトルを先頭に主要プロパティ5列をテーブル表示
+  --json でページオブジェクト配列を出力`
+  )
   .action(async (databaseIdOrUrl: string, options: CommandOptions) => {
     const outputHandler = new OutputHandler({ debug: options.debug });
     const errorHandler = new ErrorHandler();
