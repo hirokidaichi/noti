@@ -38,7 +38,8 @@ export const exportCommand = new Command('export')
         const client = new NotionClient(config);
 
         // データベースIDの解決
-        const databaseId = await pageResolver.resolvePageId(databaseIdOrUrl);
+        const databaseId =
+          await pageResolver.resolveDatabaseId(databaseIdOrUrl);
         outputHandler.debug('Database ID:', databaseId);
 
         // データベースとDataSource（プロパティ情報）の取得

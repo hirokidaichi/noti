@@ -100,7 +100,10 @@ export const searchCommand = new Command('search')
 
         const searchParams: SearchParams = {
           query: query || '',
-          page_size: parseInt(options.limit, 10),
+          page_size: Math.min(
+            Math.max(parseInt(options.limit, 10) || 20, 1),
+            100
+          ),
         };
 
         outputHandler.debug('Search Parameters:', searchParams);

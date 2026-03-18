@@ -26,7 +26,10 @@ export const listCommand = new Command('list')
         const client = new NotionClient(config);
 
         const results = await client.listDatabases({
-          page_size: parseInt(options.limit, 10),
+          page_size: Math.min(
+            Math.max(parseInt(options.limit, 10) || 100, 1),
+            100
+          ),
         });
         outputHandler.debug('Raw Database Results:', results);
 

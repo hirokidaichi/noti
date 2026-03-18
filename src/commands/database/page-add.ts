@@ -149,7 +149,8 @@ Supported property types:
         const client = new NotionClient(config);
 
         // データベースIDの解決
-        const databaseId = await pageResolver.resolvePageId(databaseIdOrUrl);
+        const databaseId =
+          await pageResolver.resolveDatabaseId(databaseIdOrUrl);
         outputHandler.debug('Database ID:', databaseId);
 
         await createPageFromJson(client, databaseId, jsonFile, outputHandler);

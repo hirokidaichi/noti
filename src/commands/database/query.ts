@@ -365,7 +365,10 @@ export const queryCommand = new Command('query')
         database_id: databaseId,
         filter: filter as Parameters<typeof client.queryDatabase>[0]['filter'],
         sorts: sorts as Parameters<typeof client.queryDatabase>[0]['sorts'],
-        page_size: parseInt(options.limit || '50', 10),
+        page_size: Math.min(
+          Math.max(parseInt(options.limit || '50', 10) || 50, 1),
+          100
+        ),
       });
 
       const pages = response.results as PageResult[];
